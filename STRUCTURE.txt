@@ -1,0 +1,208 @@
+CricketBazar/
+│
+├── 📄 README.md                         # Main project documentation
+├── 📄 SETUP_GUIDE.md                    # Detailed setup instructions
+├── 📄 STRUCTURE.txt                     # This file - project structure
+├── 📄 .gitignore                        # Git ignore rules
+├── 📄 docker-compose.yml                # SQL Server & tools container setup
+│
+├── 📁 Backend/                          # .NET 10 REST API
+│   │
+│   ├── 📄 CricketBazar.sln              # Visual Studio solution file
+│   ├── 📄 Directory.Build.props          # Shared build configuration
+│   ├── 📄 .editorconfig                 # Code style rules
+│   ├── 📄 README.md                     # Backend documentation
+│   ├── 📄 appsettings.json              # Default API configuration
+│   ├── 📄 appsettings.Development.json  # Development settings
+│   │
+│   ├── 📁 src/                          # Source code
+│   │   │
+│   │   ├── 📁 CricketBazar.Domain/      # Domain Layer
+│   │   │   ├── 📄 CricketBazar.Domain.csproj
+│   │   │   ├── 📁 Entities/
+│   │   │   │   ├── 📄 Product.cs        # Product entity
+│   │   │   │   └── 📄 Category.cs       # Category entity
+│   │   │   └── 📁 Interfaces/
+│   │   │       ├── 📄 IBaseRepository.cs    # Base repository interface
+│   │   │       └── 📄 IProductRepository.cs # Product repository interface
+│   │   │
+│   │   ├── 📁 CricketBazar.Application/ # Application Layer
+│   │   │   ├── 📄 CricketBazar.Application.csproj
+│   │   │   ├── 📄 ApplicationServiceExtensions.cs  # DI setup
+│   │   │   ├── 📁 DTOs/                 # Data Transfer Objects
+│   │   │   │   └── 📄 ProductDto.cs
+│   │   │   ├── 📁 Commands/             # MediatR commands
+│   │   │   ├── 📁 Queries/              # MediatR queries
+│   │   │   ├── 📁 Validators/           # FluentValidation rules
+│   │   │   └── 📁 Mappings/             # AutoMapper profiles
+│   │   │
+│   │   ├── 📁 CricketBazar.Infrastructure/ # Infrastructure Layer
+│   │   │   ├── 📄 CricketBazar.Infrastructure.csproj
+│   │   │   ├── 📄 InfrastructureServiceExtensions.cs # DI setup
+│   │   │   ├── 📁 Data/
+│   │   │   │   └── 📄 ApplicationDbContext.cs  # EF Core DbContext
+│   │   │   └── 📁 Repositories/
+│   │   │       ├── 📄 BaseRepository.cs    # Generic repository
+│   │   │       └── 📄 ProductRepository.cs # Product repository
+│   │   │
+│   │   ├── 📁 CricketBazar.Shared/      # Shared Layer
+│   │   │   ├── 📄 CricketBazar.Shared.csproj
+│   │   │   ├── 📁 Constants/
+│   │   │   │   └── 📄 ApiConstants.cs
+│   │   │   └── 📁 Exceptions/
+│   │   │       └── 📄 BusinessException.cs
+│   │   │
+│   │   └── 📁 CricketBazar.API/         # API Layer (Presentation)
+│   │       ├── 📄 CricketBazar.API.csproj
+│   │       ├── 📄 Program.cs            # API startup configuration
+│   │       ├── 📁 Controllers/
+│   │       │   └── 📄 ProductsController.cs
+│   │       └── 📁 Middleware/           # Custom middleware
+│   │
+│   ├── 📁 tests/                        # Test Projects
+│   │   ├── 📁 CricketBazar.Tests.Unit/
+│   │   │   └── 📄 CricketBazar.Tests.Unit.csproj
+│   │   ├── 📁 CricketBazar.Tests.Integration/
+│   │   │   └── 📄 CricketBazar.Tests.Integration.csproj
+│   │   └── 📁 CricketBazar.Tests.API/
+│   │       └── 📄 CricketBazar.Tests.API.csproj
+│   │
+│   ├── 📁 .github/                      # GitHub configuration
+│   │   ├── 📁 workflows/                # CI/CD pipelines
+│   │   ├── 📁 agents/                   # Custom Copilot agents
+│   │   └── 📁 skills/                   # Reusable Copilot skills
+│   │
+│   └── 📁 docs/                         # Documentation
+│
+├── 📁 Frontend/                         # Angular Application
+│   ├── 📄 package.json                  # Dependencies
+│   ├── 📄 angular.json                  # Angular CLI configuration
+│   ├── 📄 tsconfig.json                 # TypeScript configuration
+│   └── 📁 src/
+│       ├── 📁 app/                      # Angular application
+│       │   ├── 📁 core/                 # Core services, guards
+│       │   ├── 📁 shared/               # Shared components
+│       │   └── 📁 modules/              # Feature modules
+│       ├── 📁 assets/                   # Static files (images, icons)
+│       └── 📁 environments/             # Environment configurations
+│
+├── 📁 Database/                         # SQL Server Scripts
+│   ├── 📁 migrations/                   # EF Core migrations
+│   ├── 📁 seeds/                        # Seed data scripts
+│   └── 📁 stored-procedures/            # Stored procedures & views
+│
+└── 📄 folder_structure.txt              # Project structure reference
+
+
+LAYER RESPONSIBILITIES
+═══════════════════════════════════════════════════════
+
+Domain Layer (CricketBazar.Domain)
+└─ Pure business logic
+   ├─ Entities: Product, Category
+   ├─ Interfaces: IProductRepository, IBaseRepository
+   └─ No external dependencies
+
+Application Layer (CricketBazar.Application)
+└─ Business rules & orchestration
+   ├─ DTOs: ProductDto, CreateProductDto
+   ├─ MediatR Commands & Queries
+   ├─ Handlers: Process business logic
+   ├─ Validators: FluentValidation rules
+   └─ Mappings: AutoMapper profiles
+
+Infrastructure Layer (CricketBazar.Infrastructure)
+└─ Data persistence & external services
+   ├─ DbContext: Entity Framework Core
+   ├─ Repositories: ProductRepository, BaseRepository
+   ├─ Migrations: Database schema versions
+   └─ External integrations
+
+API Layer (CricketBazar.API)
+└─ HTTP communication
+   ├─ Controllers: ProductsController
+   ├─ Middleware: Error handling, logging
+   ├─ Routes: RESTful endpoints
+   └─ Configuration: Startup, DI, CORS
+
+Shared Layer (CricketBazar.Shared)
+└─ Cross-cutting concerns
+   ├─ Constants: ApiConstants
+   └─ Exceptions: BusinessException
+
+
+KEY FILES
+═══════════════════════════════════════════════════════
+
+Configuration:
+  - Program.cs: API startup & dependency injection
+  - appsettings.json: Default configuration
+  - appsettings.Development.json: Dev settings
+  - CricketBazar.sln: Solution containing all projects
+
+Data Access:
+  - ApplicationDbContext.cs: EF Core configuration
+  - ProductRepository.cs: Product data access
+  - BaseRepository.cs: Generic CRUD operations
+
+Business Logic:
+  - Product.cs: Product entity
+  - ProductDto.cs: Product data transfer object
+  - ProductsController.cs: API endpoints
+
+Dependencies:
+  - Directory.Build.props: NuGet package versions
+  - *.csproj: Project-specific settings
+
+
+TECHNOLOGY STACK
+═══════════════════════════════════════════════════════
+
+Backend:
+  ✓ .NET 10 (Latest LTS)
+  ✓ Entity Framework Core 9.0
+  ✓ MediatR (CQRS pattern)
+  ✓ AutoMapper (Object mapping)
+  ✓ FluentValidation (Input validation)
+  ✓ Serilog (Structured logging)
+  ✓ SQL Server 2022
+
+Frontend:
+  ✓ Angular 18+
+  ✓ TypeScript
+  ✓ RxJS
+  ✓ Angular Material (optional)
+
+Database:
+  ✓ SQL Server 2022
+  ✓ Entity Framework Core Migrations
+  ✓ Docker support
+
+
+GETTING STARTED
+═══════════════════════════════════════════════════════
+
+1. Backend Setup:
+   $ cd Backend
+   $ dotnet restore
+   $ dotnet build
+   $ dotnet run --project src/CricketBazar.API
+
+2. Frontend Setup:
+   $ cd Frontend
+   $ npm install
+   $ ng serve
+
+3. Database Setup:
+   $ docker-compose up -d
+
+4. API Documentation:
+   → http://localhost:7000/swagger
+
+
+═══════════════════════════════════════════════════════
+Project Name: Cricket Bazar
+Version: 1.0.0
+Created: 2026-10-24
+Architecture: Clean Architecture with CQRS
+═══════════════════════════════════════════════════════

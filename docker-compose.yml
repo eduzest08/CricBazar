@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: cricketbazar-mssql
+    environment:
+      ACCEPT_EULA: Y
+      SA_PASSWORD: YourPassword123!
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    networks:
+      - cricketbazar-network
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourPassword123! -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: SQL Server Management Tools
+  adminer:
+    image: adminer
+    container_name: cricketbazar-adminer
+    ports:
+      - "8080:8080"
+    networks:
+      - cricketbazar-network
+    depends_on:
+      - sqlserver
+
+volumes:
+  sqldata:
+
+networks:
+  cricketbazar-network:
+    driver: bridge

@@ -1,0 +1,47 @@
+CricketBazar/
+├── Backend/                              # .NET 10 API
+│   ├── src/
+│   │   ├── CricketBazar.API/             # API/Presentation Layer
+│   │   ├── CricketBazar.Application/     # Business Logic & Use Cases
+│   │   ├── CricketBazar.Domain/          # Entities & Interfaces
+│   │   ├── CricketBazar.Infrastructure/  # Data Access & External Services
+│   │   └── CricketBazar.Shared/          # Shared Utilities & Constants
+│   ├── tests/
+│   │   ├── CricketBazar.Tests.Unit/      # Unit Tests
+│   │   ├── CricketBazar.Tests.Integration/ # Integration Tests
+│   │   └── CricketBazar.Tests.API/       # API Tests
+│   ├── .github/
+│   │   ├── workflows/                    # CI/CD pipelines
+│   │   ├── instructions.md               # Project-level instructions for Copilot
+│   │   ├── agents/                       # Custom agents for code review, testing, etc.
+│   │   └── skills/                       # Reusable workflows/skills
+│   ├── docs/                             # Documentation
+│   ├── .editorconfig                     # Code style consistency
+│   ├── Directory.Build.props             # Shared .NET project settings
+│   ├── CricketBazar.sln                  # Solution file
+│   ├── appsettings.json                  # Configuration
+│   ├── appsettings.Development.json      # Development settings
+│   └── README.md
+│
+├── Frontend/                             # Angular Application
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── core/                     # Core services, guards, interceptors
+│   │   │   ├── shared/                   # Shared components, pipes, directives
+│   │   │   ├── modules/                  # Feature modules
+│   │   │   └── app.module.ts
+│   │   ├── assets/
+│   │   ├── environments/
+│   │   └── index.html
+│   ├── angular.json
+│   ├── tsconfig.json
+│   ├── package.json
+│   └── README.md
+│
+├── Database/                             # SQL Server Scripts
+│   ├── migrations/                       # Database migrations
+│   ├── seeds/                            # Seed data
+│   └── stored-procedures/                # Stored procedures & views
+│
+├── docker-compose.yml                    # Local development services (SQL Server, etc.)
+└── README.md                             # Main project documentation

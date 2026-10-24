@@ -1,0 +1,308 @@
+### Cricket Bazar API Testing
+### Base URL
+@baseUrl = http://localhost:5000/api/v1
+@userId = 1
+@productId = 1
+@categoryId = 1
+@brandId = 1
+@cartId = 1
+
+### Health Check
+GET {{baseUrl}}/../health
+
+### API Version
+GET {{baseUrl}}/../api/version
+
+---
+### PRODUCTS ENDPOINTS
+
+### Get All Products
+GET {{baseUrl}}/products?pageNumber=1&pageSize=20
+
+### Get All Products with Filters
+GET {{baseUrl}}/products?pageNumber=1&pageSize=20&categoryId=1&sortBy=newest
+
+### Get Product by ID
+GET {{baseUrl}}/products/{{productId}}
+
+### Get Product by Slug
+GET {{baseUrl}}/products/slug/professional-cricket-bat
+
+### Create Product
+POST {{baseUrl}}/products
+Content-Type: application/json
+
+{
+  "name": "Premium Cricket Bat",
+  "slug": "premium-cricket-bat",
+  "sku": "BAT-001",
+  "categoryId": 1,
+  "brandId": 1,
+  "mrp": 5000.00,
+  "salePrice": 4500.00,
+  "shortDesc": "Premium quality cricket bat",
+  "description": "Professional grade cricket bat made from English willow with excellent balance",
+  "stock": 50,
+  "metaTitle": "Buy Premium Cricket Bat Online",
+  "metaDesc": "High quality cricket bat at best price",
+  "isActive": true
+}
+
+### Update Product
+PUT {{baseUrl}}/products/{{productId}}
+Content-Type: application/json
+
+{
+  "name": "Updated Premium Cricket Bat",
+  "slug": "premium-cricket-bat-updated",
+  "sku": "BAT-001-UPD",
+  "categoryId": 1,
+  "brandId": 1,
+  "mrp": 5500.00,
+  "salePrice": 4900.00,
+  "shortDesc": "Updated premium quality cricket bat",
+  "description": "Updated professional grade cricket bat",
+  "stock": 45,
+  "metaTitle": "Buy Updated Premium Cricket Bat",
+  "metaDesc": "High quality cricket bat",
+  "isActive": true
+}
+
+### Delete Product
+DELETE {{baseUrl}}/products/{{productId}}
+
+### Add Product Image
+POST {{baseUrl}}/products/{{productId}}/images
+Content-Type: application/json
+
+{
+  "url": "https://example.com/images/bat-1.jpg",
+  "sortOrder": 1
+}
+
+### Add Product Variant
+POST {{baseUrl}}/products/{{productId}}/variants
+Content-Type: application/json
+
+{
+  "size": "Adult",
+  "color": "Brown",
+  "hand": "Right",
+  "stock": 25,
+  "priceOverride": 4700.00
+}
+
+---
+### CATEGORIES ENDPOINTS
+
+### Get All Categories
+GET {{baseUrl}}/categories
+
+### Get Categories (Only Active)
+GET {{baseUrl}}/categories?onlyActive=true
+
+### Get Category by ID
+GET {{baseUrl}}/categories/{{categoryId}}
+
+### Get Category by Slug
+GET {{baseUrl}}/categories/slug/bats
+
+### Create Category
+POST {{baseUrl}}/categories
+Content-Type: application/json
+
+{
+  "name": "Cricket Bats",
+  "slug": "bats",
+  "sortOrder": 1
+}
+
+### Update Category
+PUT {{baseUrl}}/categories/{{categoryId}}
+Content-Type: application/json
+
+{
+  "name": "Cricket Bats & Accessories",
+  "slug": "bats-accessories",
+  "sortOrder": 1,
+  "isActive": true
+}
+
+### Delete Category
+DELETE {{baseUrl}}/categories/{{categoryId}}
+
+---
+### BRANDS ENDPOINTS
+
+### Get All Brands
+GET {{baseUrl}}/brands
+
+### Get Brand by ID
+GET {{baseUrl}}/brands/{{brandId}}
+
+### Get Brand by Slug
+GET {{baseUrl}}/brands/slug/kashmir-willow
+
+### Create Brand
+POST {{baseUrl}}/brands
+Content-Type: application/json
+
+{
+  "name": "Kashmir Willow",
+  "slug": "kashmir-willow",
+  "logoUrl": "https://example.com/logo.png"
+}
+
+### Update Brand
+PUT {{baseUrl}}/brands/{{brandId}}
+Content-Type: application/json
+
+{
+  "name": "Kashmir Willow Premium",
+  "slug": "kashmir-willow-premium",
+  "logoUrl": "https://example.com/logo-premium.png",
+  "isActive": true
+}
+
+### Delete Brand
+DELETE {{baseUrl}}/brands/{{brandId}}
+
+---
+### REVIEWS ENDPOINTS
+
+### Get Reviews for Product
+GET {{baseUrl}}/reviews/product/{{productId}}
+
+### Get Reviews by User
+GET {{baseUrl}}/reviews/user/{{userId}}
+
+### Create Review
+POST {{baseUrl}}/reviews
+Content-Type: application/json
+X-User-Id: {{userId}}
+
+{
+  "productId": {{productId}},
+  "rating": 5,
+  "comment": "Excellent product! Highly recommended."
+}
+
+### Delete Review
+DELETE {{baseUrl}}/reviews/1
+X-User-Id: {{userId}}
+
+---
+### WISHLIST ENDPOINTS
+
+### Get User Wishlist
+GET {{baseUrl}}/wishlist/user/{{userId}}
+
+### Check if Product in Wishlist
+GET {{baseUrl}}/wishlist/user/{{userId}}/product/{{productId}}
+
+### Add Product to Wishlist
+POST {{baseUrl}}/wishlist/user/{{userId}}/product/{{productId}}
+
+### Remove from Wishlist
+DELETE {{baseUrl}}/wishlist/user/{{userId}}/product/{{productId}}
+
+---
+### CART ENDPOINTS
+
+### Get User Cart
+GET {{baseUrl}}/cart/user/{{userId}}
+
+### Get Guest Cart
+GET {{baseUrl}}/cart/guest/12345678-1234-1234-1234-123456789012
+
+### Add to Cart
+POST {{baseUrl}}/cart/user/{{userId}}/items
+Content-Type: application/json
+
+{
+  "productId": {{productId}},
+  "variantId": null,
+  "qty": 2
+}
+
+### Update Cart Item
+PUT {{baseUrl}}/cart/items/1
+Content-Type: application/json
+
+{
+  "qty": 3
+}
+
+### Remove from Cart
+DELETE {{baseUrl}}/cart/items/1
+
+### Clear Cart
+DELETE {{baseUrl}}/cart/user/{{userId}}
+
+---
+### ORDERS ENDPOINTS
+
+### Get User Orders
+GET {{baseUrl}}/orders/user/{{userId}}
+
+### Get Order by ID
+GET {{baseUrl}}/orders/1
+
+### Get Order by Order Number
+GET {{baseUrl}}/orders/number/ORD-20241024120000-1
+
+### Create Order
+POST {{baseUrl}}/orders/user/{{userId}}
+Content-Type: application/json
+
+{
+  "shipFullName": "John Doe",
+  "shipMobile": "9876543210",
+  "shipAddress": "123 Cricket Lane, Sports City",
+  "shipPincode": "560001",
+  "shippingFee": 100.00
+}
+
+### Update Order Status
+PUT {{baseUrl}}/orders/1/status
+Content-Type: application/json
+
+{
+  "status": "Shipped"
+}
+
+### Cancel Order
+POST {{baseUrl}}/orders/1/cancel?userId=1
+
+---
+### CUSTOM BAT REQUESTS ENDPOINTS
+
+### Get User Custom Bat Requests
+GET {{baseUrl}}/custombat requests/user/{{userId}}
+
+### Get Custom Bat Request by ID
+GET {{baseUrl}}/custombat requests/1
+
+### Create Custom Bat Request
+POST {{baseUrl}}/custombat requests
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "mobile": "9876543210",
+  "specs": "{\"willowGrade\": \"English Grade 1\", \"weight\": \"1200g\", \"handle\": \"Cane\", \"grains\": \"Premium\"}"
+}
+
+### Update Custom Bat Request Status
+PUT {{baseUrl}}/custombat requests/1/status
+Content-Type: application/json
+
+{
+  "status": "In Progress"
+}
+
+### Delete Custom Bat Request
+DELETE {{baseUrl}}/custombat requests/1
+
+### Get All Pending Custom Bat Requests (Admin)
+GET {{baseUrl}}/custombat requests/admin/pending

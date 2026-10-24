@@ -1,0 +1,267 @@
+namespace CricketBazar.Application.DTOs;
+
+// Product DTOs
+public class ProductDto
+{
+    public int Id { get; set; }
+    public required string Name { get; set; }
+    public required string Slug { get; set; }
+    public required string Sku { get; set; }
+    public int CategoryId { get; set; }
+    public int BrandId { get; set; }
+    public decimal Mrp { get; set; }
+    public decimal SalePrice { get; set; }
+    public int DiscountPct { get; set; }
+    public string? ShortDesc { get; set; }
+    public string? Description { get; set; }
+    public int Stock { get; set; }
+    public decimal AvgRating { get; set; }
+    public int ReviewCount { get; set; }
+    public int SalesCount { get; set; }
+    public string? MetaTitle { get; set; }
+    public string? MetaDesc { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public CategoryDto? Category { get; set; }
+    public BrandDto? Brand { get; set; }
+    public List<ProductImageDto> Images { get; set; } = new();
+    public List<ProductVariantDto> Variants { get; set; } = new();
+}
+
+public class CreateProductDto
+{
+    public required string Name { get; set; }
+    public required string Slug { get; set; }
+    public required string Sku { get; set; }
+    public int CategoryId { get; set; }
+    public int BrandId { get; set; }
+    public decimal Mrp { get; set; }
+    public decimal SalePrice { get; set; }
+    public string? ShortDesc { get; set; }
+    public string? Description { get; set; }
+    public int Stock { get; set; }
+    public string? MetaTitle { get; set; }
+    public string? MetaDesc { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class UpdateProductDto
+{
+    public required string Name { get; set; }
+    public required string Slug { get; set; }
+    public required string Sku { get; set; }
+    public int CategoryId { get; set; }
+    public int BrandId { get; set; }
+    public decimal Mrp { get; set; }
+    public decimal SalePrice { get; set; }
+    public string? ShortDesc { get; set; }
+    public string? Description { get; set; }
+    public int Stock { get; set; }
+    public string? MetaTitle { get; set; }
+    public string? MetaDesc { get; set; }
+    public bool IsActive { get; set; }
+}
+
+// Category DTOs
+public class CategoryDto
+{
+    public int Id { get; set; }
+    public int? ParentId { get; set; }
+    public required string Name { get; set; }
+    public required string Slug { get; set; }
+    public int SortOrder { get; set; }
+    public bool IsActive { get; set; }
+    public List<CategoryDto> Children { get; set; } = new();
+}
+
+public class CreateCategoryDto
+{
+    public int? ParentId { get; set; }
+    public required string Name { get; set; }
+    public required string Slug { get; set; }
+    public int SortOrder { get; set; } = 0;
+}
+
+public class UpdateCategoryDto
+{
+    public int? ParentId { get; set; }
+    public required string Name { get; set; }
+    public required string Slug { get; set; }
+    public int SortOrder { get; set; }
+    public bool IsActive { get; set; }
+}
+
+// Brand DTOs
+public class BrandDto
+{
+    public int Id { get; set; }
+    public required string Name { get; set; }
+    public required string Slug { get; set; }
+    public string? LogoUrl { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class CreateBrandDto
+{
+    public required string Name { get; set; }
+    public required string Slug { get; set; }
+    public string? LogoUrl { get; set; }
+}
+
+public class UpdateBrandDto
+{
+    public required string Name { get; set; }
+    public required string Slug { get; set; }
+    public string? LogoUrl { get; set; }
+    public bool IsActive { get; set; }
+}
+
+// Product Image DTOs
+public class ProductImageDto
+{
+    public int Id { get; set; }
+    public required string Url { get; set; }
+    public int SortOrder { get; set; }
+}
+
+public class CreateProductImageDto
+{
+    public required string Url { get; set; }
+    public int SortOrder { get; set; } = 0;
+}
+
+// Product Variant DTOs
+public class ProductVariantDto
+{
+    public int Id { get; set; }
+    public string? Size { get; set; }
+    public string? Color { get; set; }
+    public string? Hand { get; set; }
+    public int Stock { get; set; }
+    public decimal? PriceOverride { get; set; }
+}
+
+public class CreateProductVariantDto
+{
+    public string? Size { get; set; }
+    public string? Color { get; set; }
+    public string? Hand { get; set; }
+    public int Stock { get; set; }
+    public decimal? PriceOverride { get; set; }
+}
+
+// Review DTOs
+public class ReviewDto
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public int UserId { get; set; }
+    public byte Rating { get; set; }
+    public string? Comment { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CreateReviewDto
+{
+    public int ProductId { get; set; }
+    public byte Rating { get; set; }
+    public string? Comment { get; set; }
+}
+
+// Cart DTOs
+public class CartDto
+{
+    public int Id { get; set; }
+    public int? UserId { get; set; }
+    public Guid? GuestToken { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public List<CartItemDto> Items { get; set; } = new();
+    public decimal Total { get; set; }
+}
+
+public class CartItemDto
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public string? ProductName { get; set; }
+    public decimal Price { get; set; }
+    public int? VariantId { get; set; }
+    public string? VariantInfo { get; set; }
+    public int Qty { get; set; }
+    public decimal SubTotal { get; set; }
+}
+
+public class AddToCartDto
+{
+    public int ProductId { get; set; }
+    public int? VariantId { get; set; }
+    public int Qty { get; set; }
+}
+
+// Order DTOs
+public class OrderDto
+{
+    public int Id { get; set; }
+    public required string OrderNo { get; set; }
+    public int UserId { get; set; }
+    public string Status { get; set; } = "Pending";
+    public decimal SubTotal { get; set; }
+    public decimal ShippingFee { get; set; }
+    public decimal Total { get; set; }
+    public required string ShipFullName { get; set; }
+    public required string ShipMobile { get; set; }
+    public required string ShipAddress { get; set; }
+    public required string ShipPincode { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public List<OrderItemDto> Items { get; set; } = new();
+}
+
+public class CreateOrderDto
+{
+    public required string ShipFullName { get; set; }
+    public required string ShipMobile { get; set; }
+    public required string ShipAddress { get; set; }
+    public required string ShipPincode { get; set; }
+    public decimal ShippingFee { get; set; } = 0;
+}
+
+public class OrderItemDto
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public int? VariantId { get; set; }
+    public required string ProductName { get; set; }
+    public decimal UnitPrice { get; set; }
+    public int Qty { get; set; }
+    public decimal SubTotal { get; set; }
+}
+
+// Wishlist DTOs
+public class WishlistItemDto
+{
+    public int ProductId { get; set; }
+    public required string ProductName { get; set; }
+    public decimal SalePrice { get; set; }
+    public string? Image { get; set; }
+    public DateTime AddedAt { get; set; }
+}
+
+// Custom Bat Request DTOs
+public class CustomBatRequestDto
+{
+    public int Id { get; set; }
+    public int? UserId { get; set; }
+    public required string Name { get; set; }
+    public required string Mobile { get; set; }
+    public required string Specs { get; set; }
+    public string Status { get; set; } = "New";
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CreateCustomBatRequestDto
+{
+    public required string Name { get; set; }
+    public required string Mobile { get; set; }
+    public required string Specs { get; set; }
+}
+
