@@ -21,8 +21,11 @@ public class CreateCategoryCommandHandler : IRequestHandler<CreateCategoryComman
     {
         var category = _mapper.Map<Category>(request.Category);
         category.IsActive = true;
-        
-        await _repository.AddAsync(category);
+
+        if (await _repository.GetBySlugAsync(category.Slug) != null)
+            throw new InvalidOperationException($"Category with slug '{category.Slug}' already exists");
+
+        category.Id = await _repository.AddAsync(category);
 
         return _mapper.Map<CategoryDto>(category);
     }
@@ -46,6 +49,11 @@ public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryComman
             throw new KeyNotFoundException($"Category with ID {request.Id} not found");
 
         _mapper.Map(request.Category, category);
+
+        var existing = await _repository.GetBySlugAsync(category.Slug);
+        if (existing != null && existing.Id != category.Id)
+            throw new InvalidOperationException($"Category with slug '{category.Slug}' already exists");
+
         await _repository.UpdateAsync(category);
 
         return _mapper.Map<CategoryDto>(category);

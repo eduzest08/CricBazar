@@ -82,9 +82,15 @@ public class CategoriesController : ControllerBase
         _logger.LogInformation("Creating new category: {CategoryName}", createCategoryDto.Name);
         
         var command = new CreateCategoryCommand { Category = createCategoryDto };
-        var result = await _mediator.Send(command);
-        
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        try
+        {
+            var result = await _mediator.Send(command);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     /// <summary>
@@ -108,6 +114,10 @@ public class CategoriesController : ControllerBase
         catch (KeyNotFoundException)
         {
             return NotFound(new { message = "Category not found" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
     }
 

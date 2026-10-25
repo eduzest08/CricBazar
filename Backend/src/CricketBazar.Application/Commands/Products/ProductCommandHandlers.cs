@@ -22,7 +22,7 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
         var product = _mapper.Map<Product>(request.Product);
         product.CreatedAt = DateTime.UtcNow;
         
-        await _repository.AddAsync(product);
+        product.Id = await _repository.AddAsync(product);
 
         return _mapper.Map<ProductDto>(product);
     }
