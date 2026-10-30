@@ -1,0 +1,55 @@
+.strikethrough {
+  text-decoration: line-through;
+}
+
+.modal-backdrop {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  position: fixed;
+  z-index: 1000;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 420px;
+  padding: 24px;
+  width: 90%;
+
+  h3 { margin: 0 0 12px; }
+  p { margin: 0 0 20px; }
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.danger-button {
+  background: #c62828;
+  border-color: #c62828;
+  color: #fff;
+}
+
+.sort-button {
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  padding: 0;
+}
+
+.page-size {
+  align-items: center;
+  display: inline-flex;
+  font-size: 11px;
+  gap: 6px;
+  margin-right: 8px;
+}

@@ -1,0 +1,48 @@
+<div class="admin-shell">
+  <aside class="sidebar">
+    <a class="brand-mark" routerLink="/admin/products" aria-label="CricBazar admin home">
+      <span class="brand-icon">CB</span>
+      <span>CricBazar <small>ADMIN CONSOLE</small></span>
+    </a>
+
+    <div class="nav-label">CATALOG</div>
+    <nav aria-label="Admin navigation">
+      <div class="nav-folder">
+        <button class="folder-toggle" type="button" [attr.aria-expanded]="productsOpen" (click)="productsOpen = !productsOpen">
+          <span class="nav-icon">{{ productsOpen ? '📂' : '📁' }}</span> PRODUCTS
+        </button>
+        @if (productsOpen) {
+          <div class="folder-children">
+            <a routerLink="/admin/brands" routerLinkActive="active">
+              <span class="nav-icon">◇</span> Brands
+            </a>
+            <a routerLink="/admin/categories" routerLinkActive="active">
+              <span class="nav-icon">▤</span> Categories
+            </a>
+            <a routerLink="/admin/products" routerLinkActive="active">
+              <span class="nav-icon">▦</span> Products
+            </a>
+          </div>
+        }
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <span class="status-dot"></span>
+      <span>Admin mode <small>Authentication is disabled</small></span>
+    </div>
+  </aside>
+
+  <main class="main-panel">
+    <header class="topbar">
+      <div>
+        <span class="eyebrow">CRICBAZAR / ADMIN</span>
+        <strong>Catalog management</strong>
+      </div>
+      <a class="customer-link" routerLink="/customer">Customer storefront <span>↗</span></a>
+    </header>
+    <section class="page-content">
+      <router-outlet />
+    </section>
+  </main>
+</div>

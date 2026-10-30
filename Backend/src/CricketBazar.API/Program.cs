@@ -77,6 +77,9 @@ try
 
     app.UseHttpsRedirection();
 
+    // Serves uploaded files (e.g. brand logos) from wwwroot
+    app.UseStaticFiles();
+
     app.UseCors("AllowAngular");
 
     app.UseAuthorization();
@@ -90,6 +93,26 @@ try
     // API Version endpoint
     app.MapGet("/api/version", () => Results.Ok(new { version = ApiConstants.ApiVersion }))
         .WithName("ApiVersion");
+
+    // Open the Angular admin page automatically once the API is up (dev only)
+    if (app.Environment.IsDevelopment())
+    {
+        app.Lifetime.ApplicationStarted.Register(() =>
+        {
+            const string adminUrl = "http://localhost:4200/admin/products";
+            try
+            {
+                var psi = OperatingSystem.IsMacOS() ? new System.Diagnostics.ProcessStartInfo("open", adminUrl)
+                    : OperatingSystem.IsLinux() ? new System.Diagnostics.ProcessStartInfo("xdg-open", adminUrl)
+                    : new System.Diagnostics.ProcessStartInfo(adminUrl) { UseShellExecute = true };
+                System.Diagnostics.Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Could not open the browser. Visit {Url}", adminUrl);
+            }
+        });
+    }
 
     app.Run();
 }

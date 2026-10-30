@@ -15,8 +15,10 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category))
             .ForMember(dest => dest.Brand, opt => opt.MapFrom(src => src.Brand));
 
-        CreateMap<CreateProductDto, Product>();
-        CreateMap<UpdateProductDto, Product>();
+        CreateMap<CreateProductDto, Product>()
+            .ForMember(dest => dest.Sku, opt => opt.Ignore());
+        CreateMap<UpdateProductDto, Product>()
+            .ForMember(dest => dest.Sku, opt => opt.Ignore());
 
         // Category mappings
         CreateMap<Category, CategoryDto>()

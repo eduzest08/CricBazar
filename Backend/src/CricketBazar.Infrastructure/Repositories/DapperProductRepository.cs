@@ -173,6 +173,14 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
             "price_desc" => "ORDER BY SalePrice DESC",
             "rating" => "ORDER BY AvgRating DESC",
             "bestselling" => "ORDER BY SalesCount DESC",
+            "name_asc" => "ORDER BY Name ASC, Id ASC",
+            "name_desc" => "ORDER BY Name DESC, Id ASC",
+            "sku_asc" => "ORDER BY SKU ASC, Id ASC",
+            "sku_desc" => "ORDER BY SKU DESC, Id ASC",
+            "stock_asc" => "ORDER BY Stock ASC, Id ASC",
+            "stock_desc" => "ORDER BY Stock DESC, Id ASC",
+            "id_asc" => "ORDER BY Id ASC",
+            "id_desc" => "ORDER BY Id DESC",
             _ => "ORDER BY CreatedAt DESC"
         };
 

@@ -1,0 +1,156 @@
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">CATALOG STRUCTURE</span>
+    <h1>Brands</h1>
+    <p>Maintain the brand directory used by products.</p>
+  </div>
+  <button class="button button-primary" type="button" (click)="reset()">
+    <span aria-hidden="true">＋</span> Add brand
+  </button>
+</div>
+
+@if (errorMessage) {
+  <div class="alert alert-error" role="alert">{{ errorMessage }}</div>
+}
+@if (successMessage) {
+  <div class="alert alert-success" role="status">{{ successMessage }}</div>
+}
+
+<section class="editor-card">
+  <div class="section-heading">
+    <div>
+      <h2>{{ editingId === null ? 'Create a brand' : 'Edit brand' }}</h2>
+      <p>Brand name, public URL, and optional logo</p>
+    </div>
+    @if (editingId !== null) {
+      <button class="text-button" type="button" (click)="reset()">Cancel edit</button>
+    }
+  </div>
+
+  <form #brandForm="ngForm" (ngSubmit)="save()">
+    <div class="form-grid">
+      <label>
+        <span class="field-label">Brand name <b>*</b></span>
+        <input [(ngModel)]="draft.name" name="name" required maxlength="100" placeholder="Gray-Nicolls" />
+      </label>
+      <label>
+        <span class="field-label">URL slug <b>*</b></span>
+        <input [(ngModel)]="draft.slug" name="slug" required maxlength="100" placeholder="gray-nicolls" />
+      </label>
+      <div class="wide-field logo-upload">
+        <span class="field-label">Logo</span>
+        <div class="logo-upload-row">
+          @if (previewUrl) {
+            <img class="logo-preview" [src]="previewUrl" alt="Logo preview" />
+          } @else {
+            <span class="logo-preview logo-empty">No logo</span>
+          }
+          <input #fileInput type="file" name="logoFile" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" (change)="onFileSelected($event)" />
+          @if (previewUrl) {
+            <button class="text-button danger-text" type="button" (click)="removeLogo(fileInput)">Remove</button>
+          }
+        </div>
+        <small class="form-note">PNG, JPG, GIF, WEBP or SVG, up to 2 MB.</small>
+      </div>
+    </div>
+    @if (editingId !== null) {
+      <div class="form-footer">
+        <label class="toggle-label">
+          <input [(ngModel)]="draft.isActive" name="isActive" type="checkbox" />
+          <span>Active brand</span>
+        </label>
+        <button class="button button-primary" type="submit" [disabled]="brandForm.invalid || saving">
+          {{ saving ? 'Saving…' : 'Save changes' }}
+        </button>
+      </div>
+    } @else {
+      <div class="form-footer">
+        <span class="form-note">New brands are created as active.</span>
+        <button class="button button-primary" type="submit" [disabled]="brandForm.invalid || saving">
+          {{ saving ? 'Saving…' : 'Create brand' }}
+        </button>
+      </div>
+    }
+  </form>
+</section>
+
+<section class="table-card">
+  <div class="table-toolbar">
+    <div>
+      <h2>All brands</h2>
+      <p>{{ totalCount }} brands</p>
+    </div>
+    <form class="search-form" (ngSubmit)="search()">
+      <input [(ngModel)]="searchTerm" name="search" aria-label="Search brands" placeholder="Search name or slug…" />
+      <button class="button button-secondary" type="submit">Search</button>
+      <button class="button button-secondary" type="button" (click)="loadBrands()">Refresh</button>
+    </form>
+  </div>
+
+  @if (loading) {
+    <div class="inline-loader" role="status">Loading brands…</div>
+  } @else if (!brands.length) {
+    <div class="empty-state">No brands found. Create your first brand above.</div>
+  } @else {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th [attr.aria-sort]="ariaSort('name')"><button class="sort-button" type="button" (click)="sort('name')">BRAND {{ sortIndicator('name') }}</button></th>
+            <th [attr.aria-sort]="ariaSort('slug')"><button class="sort-button" type="button" (click)="sort('slug')">SLUG {{ sortIndicator('slug') }}</button></th>
+            <th>LOGO</th>
+            <th [attr.aria-sort]="ariaSort('isActive')"><button class="sort-button" type="button" (click)="sort('isActive')">STATUS {{ sortIndicator('isActive') }}</button></th>
+            <th><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (brand of brands; track brand.id) {
+            <tr>
+              <td><strong>{{ brand.name }}</strong><small>#{{ brand.id }}</small></td>
+              <td>{{ brand.slug }}</td>
+              <td>
+                @if (brand.logoUrl) {
+                  <img class="logo-thumb" [src]="api.resolveAssetUrl(brand.logoUrl)" [alt]="brand.name + ' logo'" />
+                } @else {
+                  <span class="muted">No logo</span>
+                }
+              </td>
+              <td><span class="status-pill" [class.inactive]="!brand.isActive">{{ brand.isActive ? 'Active' : 'Inactive' }}</span></td>
+              <td class="actions">
+                <button class="text-button" type="button" (click)="edit(brand)">Edit</button>
+                <button class="text-button danger-text" type="button" (click)="delete(brand)">Delete</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  @if (brandToDelete) {
+    <div class="modal-backdrop" (click)="cancelDelete()" (keydown.escape)="cancelDelete()">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-title" (click)="$event.stopPropagation()">
+        <h3 id="delete-title">Delete brand?</h3>
+        <p>Are you sure you want to delete <strong>{{ brandToDelete.name }}</strong>? This action cannot be undone.</p>
+        <div class="modal-actions">
+          <button class="button button-secondary" type="button" (click)="cancelDelete()">Cancel</button>
+          <button class="button danger-button" type="button" (click)="confirmDelete()">Delete</button>
+        </div>
+      </div>
+    </div>
+  }
+  <div class="pagination">
+    <span>Page {{ pageNumber }} of {{ pageCount }}</span>
+    <div>
+      <label class="page-size">
+        Rows
+        <select [ngModel]="pageSize" (ngModelChange)="changePageSize($event)" name="pageSize">
+          @for (size of pageSizeOptions; track size) {
+            <option [ngValue]="size">{{ size }}</option>
+          }
+        </select>
+      </label>
+      <button class="button button-secondary" type="button" [disabled]="pageNumber <= 1 || loading" (click)="changePage(pageNumber - 1)">Previous</button>
+      <button class="button button-secondary" type="button" [disabled]="pageNumber >= pageCount || loading" (click)="changePage(pageNumber + 1)">Next</button>
+    </div>
+  </div>
+</section>

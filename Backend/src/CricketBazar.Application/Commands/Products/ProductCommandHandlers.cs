@@ -21,10 +21,23 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
     {
         var product = _mapper.Map<Product>(request.Product);
         product.CreatedAt = DateTime.UtcNow;
-        
+        product.Sku = await GenerateUniqueSkuAsync();
+
         product.Id = await _repository.AddAsync(product);
 
         return _mapper.Map<ProductDto>(product);
+    }
+
+    private async Task<string> GenerateUniqueSkuAsync()
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var sku = $"CB-{DateTime.UtcNow:yyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+            if (await _repository.GetBySkuAsync(sku) == null)
+                return sku;
+        }
+
+        throw new InvalidOperationException("Unable to generate a unique SKU.");
     }
 }
 

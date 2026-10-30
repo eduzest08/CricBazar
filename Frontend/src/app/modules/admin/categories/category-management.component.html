@@ -1,0 +1,152 @@
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">CATALOG STRUCTURE</span>
+    <h1>Categories</h1>
+    <p>Organize products into a clear, browsable hierarchy.</p>
+  </div>
+  <button class="button button-primary" type="button" (click)="reset()">
+    <span aria-hidden="true">＋</span> Add category
+  </button>
+</div>
+
+@if (errorMessage) {
+  <div class="alert alert-error" role="alert">{{ errorMessage }}</div>
+}
+@if (successMessage) {
+  <div class="alert alert-success" role="status">{{ successMessage }}</div>
+}
+
+<section class="editor-card">
+  <div class="section-heading">
+    <div>
+      <h2>{{ editingId === null ? 'Create a category' : 'Edit category' }}</h2>
+      <p>Categories may be nested under a parent category.</p>
+    </div>
+    @if (editingId !== null) {
+      <button class="text-button" type="button" (click)="reset()">Cancel edit</button>
+    }
+  </div>
+
+  <form #categoryForm="ngForm" (ngSubmit)="save()">
+    <div class="form-grid">
+      <label>
+        <span class="field-label">Category name <b>*</b></span>
+        <input [(ngModel)]="draft.name" name="name" required maxlength="100" placeholder="Cricket bats" />
+      </label>
+      <label>
+        <span class="field-label">URL slug <b>*</b></span>
+        <input [(ngModel)]="draft.slug" name="slug" required maxlength="100" placeholder="cricket-bats" />
+      </label>
+      <label>
+        Parent category
+        <select [(ngModel)]="draft.parentId" name="parentId">
+          <option [ngValue]="null">No parent (top level)</option>
+          @for (category of categories; track category.id) {
+            @if (category.id !== editingId) {
+              <option [ngValue]="category.id">{{ category.name }}</option>
+            }
+          }
+        </select>
+      </label>
+      <label>
+        Sort order
+        <input [(ngModel)]="draft.sortOrder" name="sortOrder" type="number" step="1" />
+      </label>
+    </div>
+    @if (editingId !== null) {
+      <div class="form-footer">
+        <label class="toggle-label">
+          <input [(ngModel)]="draft.isActive" name="isActive" type="checkbox" />
+          <span>Active category</span>
+        </label>
+        <button class="button button-primary" type="submit" [disabled]="categoryForm.invalid || saving">
+          {{ saving ? 'Saving…' : 'Save changes' }}
+        </button>
+      </div>
+    } @else {
+      <div class="form-footer">
+        <span class="form-note">New categories are created as active.</span>
+        <button class="button button-primary" type="submit" [disabled]="categoryForm.invalid || saving">
+          {{ saving ? 'Saving…' : 'Create category' }}
+        </button>
+      </div>
+    }
+  </form>
+</section>
+
+<section class="table-card">
+  <div class="table-toolbar">
+    <div>
+      <h2>All categories</h2>
+      <p>{{ totalCount }} categories</p>
+    </div>
+    <form class="search-form" (ngSubmit)="search()">
+      <input [(ngModel)]="searchTerm" (ngModelChange)="search()" name="search" aria-label="Search categories" placeholder="Search name or slug…" />
+      <button class="button button-secondary" type="submit">Search</button>
+      <button class="button button-secondary" type="button" (click)="loadCategories()">Refresh</button>
+    </form>
+  </div>
+
+  @if (loading) {
+    <div class="inline-loader" role="status">Loading categories…</div>
+  } @else if (!pagedCategories.length) {
+    <div class="empty-state">No categories found. Create your first category above.</div>
+  } @else {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th [attr.aria-sort]="ariaSort('name')"><button class="sort-button" type="button" (click)="sort('name')">NAME {{ sortIndicator('name') }}</button></th>
+            <th [attr.aria-sort]="ariaSort('slug')"><button class="sort-button" type="button" (click)="sort('slug')">SLUG {{ sortIndicator('slug') }}</button></th>
+            <th [attr.aria-sort]="ariaSort('parent')"><button class="sort-button" type="button" (click)="sort('parent')">PARENT {{ sortIndicator('parent') }}</button></th>
+            <th [attr.aria-sort]="ariaSort('sortOrder')"><button class="sort-button" type="button" (click)="sort('sortOrder')">SORT ORDER {{ sortIndicator('sortOrder') }}</button></th>
+            <th [attr.aria-sort]="ariaSort('isActive')"><button class="sort-button" type="button" (click)="sort('isActive')">STATUS {{ sortIndicator('isActive') }}</button></th>
+            <th><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (category of pagedCategories; track category.id) {
+            <tr>
+              <td><strong>{{ category.name }}</strong><small>#{{ category.id }}</small></td>
+              <td>{{ category.slug }}</td>
+              <td>{{ parentName(category.parentId) }}</td>
+              <td>{{ category.sortOrder }}</td>
+              <td><span class="status-pill" [class.inactive]="!category.isActive">{{ category.isActive ? 'Active' : 'Inactive' }}</span></td>
+              <td class="actions">
+                <button class="text-button" type="button" (click)="edit(category)">Edit</button>
+                <button class="text-button danger-text" type="button" (click)="delete(category)">Delete</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  <div class="pagination">
+    <span>Page {{ pageNumber }} of {{ pageCount }}</span>
+    <div>
+      <label class="page-size">
+        Rows
+        <select [ngModel]="pageSize" (ngModelChange)="changePageSize($event)" name="pageSize">
+          @for (size of pageSizeOptions; track size) {
+            <option [ngValue]="size">{{ size }}</option>
+          }
+        </select>
+      </label>
+      <button class="button button-secondary" type="button" [disabled]="pageNumber <= 1 || loading" (click)="changePage(pageNumber - 1)">Previous</button>
+      <button class="button button-secondary" type="button" [disabled]="pageNumber >= pageCount || loading" (click)="changePage(pageNumber + 1)">Next</button>
+    </div>
+  </div>
+  @if (categoryToDelete) {
+    <div class="modal-backdrop" (click)="cancelDelete()">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-title" (click)="$event.stopPropagation()">
+        <h3 id="delete-title">Delete category?</h3>
+        <p>Are you sure you want to delete <strong>{{ categoryToDelete.name }}</strong>? This action cannot be undone.</p>
+        <div class="modal-actions">
+          <button class="button button-secondary" type="button" (click)="cancelDelete()">Cancel</button>
+          <button class="button danger-button" type="button" (click)="confirmDelete()">Delete</button>
+        </div>
+      </div>
+    </div>
+  }
+</section>

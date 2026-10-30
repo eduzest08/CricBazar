@@ -10,13 +10,18 @@ using CricketBazar.Domain.Interfaces;
 [Produces("application/json")]
 public class BrandsController : ControllerBase
 {
+    private const int MaxLogoBytes = 2 * 1024 * 1024;
+    private static readonly HashSet<string> AllowedLogoExtensions = new() { ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg" };
+
     private readonly IBrandRepository _repository;
     private readonly ILogger<BrandsController> _logger;
+    private readonly IWebHostEnvironment _environment;
 
-    public BrandsController(IBrandRepository repository, ILogger<BrandsController> logger)
+    public BrandsController(IBrandRepository repository, ILogger<BrandsController> logger, IWebHostEnvironment environment)
     {
         _repository = repository;
         _logger = logger;
+        _environment = environment;
     }
 
     /// <summary>
@@ -40,6 +45,74 @@ public class BrandsController : ControllerBase
             LogoUrl = b.LogoUrl,
             IsActive = b.IsActive
         }).ToList());
+    }
+
+    /// <summary>
+    /// Search brands with pagination and sorting (sortBy: name, slug, id, isActive)
+    /// </summary>
+    [HttpGet("paged")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<PaginatedResponse<BrandDto>>> GetPaged(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] bool? isActive = null,
+        [FromQuery] string? sortBy = "name",
+        [FromQuery] string? sortDirection = "asc")
+    {
+        pageNumber = Math.Max(1, pageNumber);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        var (items, totalCount) = await _repository.SearchAsync(
+            searchTerm, isActive, sortBy,
+            string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase),
+            pageNumber, pageSize);
+
+        return Ok(new PaginatedResponse<BrandDto>
+        {
+            Items = items.Select(b => new BrandDto
+            {
+                Id = b.Id,
+                Name = b.Name,
+                Slug = b.Slug,
+                LogoUrl = b.LogoUrl,
+                IsActive = b.IsActive
+            }).ToList(),
+            TotalCount = totalCount,
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        });
+    }
+
+    /// <summary>
+    /// Upload a brand logo image; returns the relative URL to store in LogoUrl
+    /// </summary>
+    [HttpPost("logo")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(MaxLogoBytes)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UploadLogo(IFormFile file)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "No file was uploaded." });
+        if (file.Length > MaxLogoBytes)
+            return BadRequest(new { message = "Logo must be 2 MB or smaller." });
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!AllowedLogoExtensions.Contains(extension))
+            return BadRequest(new { message = "Logo must be a PNG, JPG, GIF, WEBP or SVG image." });
+
+        var folder = Path.Combine(_environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot"), "uploads", "brands");
+        Directory.CreateDirectory(folder);
+
+        var fileName = $"{Guid.NewGuid():N}{extension}";
+        await using (var stream = System.IO.File.Create(Path.Combine(folder, fileName)))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        return Ok(new { logoUrl = $"/uploads/brands/{fileName}" });
     }
 
     /// <summary>
@@ -125,7 +198,7 @@ public class BrandsController : ControllerBase
 
         try
         {
-            await _repository.AddAsync(brand);
+            brand.Id = await _repository.AddAsync(brand);
         }
         catch (Exception ex)
         {

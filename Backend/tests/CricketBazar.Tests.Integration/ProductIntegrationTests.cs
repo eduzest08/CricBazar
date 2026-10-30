@@ -62,13 +62,6 @@ public class ProductIntegrationTests : IClassFixture<ProductApiFactory>
     }
 
     [Fact]
-    public async Task Create_MissingSku_ReturnsBadRequest()
-    {
-        var response = await _client.PostAsJsonAsync(Url, new { name = "x", slug = "x" });
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
     public async Task GetById_Existing_ReturnsProduct()
     {
         var (id, slug, name) = await CreateAsync();

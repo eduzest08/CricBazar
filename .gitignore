@@ -60,6 +60,7 @@ Frontend/dist/
 Frontend/.angular/
 Frontend/.vscode/
 Frontend/coverage/
+Backend/src/CricketBazar.API/wwwroot/uploads/
 
 # Database
 *.mdf

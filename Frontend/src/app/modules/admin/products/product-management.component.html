@@ -1,0 +1,195 @@
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">INVENTORY</span>
+    <h1>Products</h1>
+    <p>Manage your product catalog, pricing, and stock.</p>
+  </div>
+  <button class="button button-primary" type="button" (click)="startCreate()">
+    <span aria-hidden="true">＋</span> Add product
+  </button>
+</div>
+
+@if (errorMessage) {
+  <div class="alert alert-error" role="alert">{{ errorMessage }}</div>
+}
+@if (successMessage) {
+  <div class="alert alert-success" role="status">{{ successMessage }}</div>
+}
+
+<section class="editor-card">
+  <div class="section-heading">
+    <div>
+      <h2>{{ editingId === null ? 'Create a product' : 'Edit product' }}</h2>
+      <p>Product details and catalog assignments</p>
+    </div>
+    @if (editingId !== null) {
+      <button class="text-button" type="button" (click)="cancelEdit()">Cancel edit</button>
+    }
+  </div>
+
+  @if (!categories.length || !brands.length) {
+    <p class="form-hint">Categories and brands are required. Add them before creating a product.</p>
+  }
+
+  <form #productForm="ngForm" (ngSubmit)="saveProduct()">
+    <div class="form-grid">
+      <label>
+        <span class="field-label">Product name <b>*</b></span>
+        <input [(ngModel)]="draft.name" name="name" required maxlength="200" placeholder="Pro cricket bat" />
+      </label>
+      <label>
+        <span class="field-label">URL slug <b>*</b></span>
+        <input [(ngModel)]="draft.slug" name="slug" required maxlength="200" placeholder="pro-cricket-bat" />
+      </label>
+      <label>
+        <span class="field-label">SKU</span>
+        <input [value]="draft.sku || 'Auto-generated on save'" name="sku" readonly disabled />
+      </label>
+      <label>
+        <span class="field-label">Category <b>*</b></span>
+        <select [(ngModel)]="draft.categoryId" name="categoryId" required>
+          <option [ngValue]="null" disabled>Select category</option>
+          @for (category of categories; track category.id) {
+            <option [ngValue]="category.id">{{ category.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span class="field-label">Brand <b>*</b></span>
+        <select [(ngModel)]="draft.brandId" name="brandId" required>
+          <option [ngValue]="null" disabled>Select brand</option>
+          @for (brand of brands; track brand.id) {
+            <option [ngValue]="brand.id">{{ brand.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        MRP
+        <input [(ngModel)]="draft.mrp" name="mrp" type="number" min="0" step="0.01" required />
+      </label>
+      <label>
+        Sale price
+        <input [(ngModel)]="draft.salePrice" name="salePrice" type="number" min="0" step="0.01" required />
+      </label>
+      <label>
+        Stock quantity
+        <input [(ngModel)]="draft.stock" name="stock" type="number" min="0" step="1" required />
+      </label>
+      <label class="wide-field">
+        Short description
+        <input [(ngModel)]="draft.shortDesc" name="shortDesc" maxlength="500" placeholder="A short summary for product cards" />
+      </label>
+      <div class="wide-field">
+        <span id="description-label">Description</span>
+        <app-rich-text-editor [(ngModel)]="draft.description" name="description" />
+      </div>
+      <label>
+        Meta title
+        <input [(ngModel)]="draft.metaTitle" name="metaTitle" maxlength="200" />
+      </label>
+      <label>
+        Meta description
+        <input [(ngModel)]="draft.metaDesc" name="metaDesc" maxlength="500" />
+      </label>
+    </div>
+
+    <div class="form-footer">
+      <label class="toggle-label">
+        <input [(ngModel)]="draft.isActive" name="isActive" type="checkbox" />
+        <span>Active product</span>
+      </label>
+      <button class="button button-primary" type="submit" [disabled]="productForm.invalid || saving">
+        {{ saving ? 'Saving…' : editingId === null ? 'Create product' : 'Save changes' }}
+      </button>
+    </div>
+  </form>
+</section>
+
+<section class="table-card">
+  <div class="table-toolbar">
+    <div>
+      <h2>Product catalog</h2>
+      <p>{{ totalCount }} products</p>
+    </div>
+    <form class="search-form" (ngSubmit)="search()">
+      <input [(ngModel)]="searchTerm" name="search" aria-label="Search products" placeholder="Search products…" />
+      <button class="button button-secondary" type="submit">Search</button>
+    </form>
+  </div>
+
+  @if (loading) {
+    <div class="inline-loader" role="status">Loading products…</div>
+  } @else if (!products.length) {
+    <div class="empty-state">No products found. Create your first catalog item above.</div>
+  } @else {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th [attr.aria-sort]="ariaSort('name')"><button class="sort-button" type="button" (click)="sort('name')">PRODUCT {{ sortIndicator('name') }}</button></th>
+            <th [attr.aria-sort]="ariaSort('sku')"><button class="sort-button" type="button" (click)="sort('sku')">SKU {{ sortIndicator('sku') }}</button></th>
+            <th>CATEGORY / BRAND</th>
+            <th [attr.aria-sort]="ariaSort('salePrice')"><button class="sort-button" type="button" (click)="sort('salePrice')">PRICE {{ sortIndicator('salePrice') }}</button></th>
+            <th [attr.aria-sort]="ariaSort('stock')"><button class="sort-button" type="button" (click)="sort('stock')">STOCK {{ sortIndicator('stock') }}</button></th>
+            <th>STATUS</th>
+            <th><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (product of products; track product.id) {
+            <tr>
+              <td>
+                <strong>{{ product.name }}</strong>
+                <small>#{{ product.id }} · {{ product.slug }}</small>
+              </td>
+              <td>{{ product.sku }}</td>
+              <td>
+                {{ categoryName(product.categoryId) }}
+                <small>{{ brandName(product.brandId) }}</small>
+              </td>
+              <td>
+                <strong>{{ product.salePrice | currency:'INR':'symbol':'1.0-2' }}</strong>
+                @if (product.mrp > product.salePrice) {
+                  <small class="strikethrough">{{ product.mrp | currency:'INR':'symbol':'1.0-2' }}</small>
+                }
+              </td>
+              <td>{{ product.stock }}</td>
+              <td><span class="status-pill" [class.inactive]="!product.isActive">{{ product.isActive ? 'Active' : 'Inactive' }}</span></td>
+              <td class="actions">
+                <button class="text-button" type="button" (click)="edit(product)">Edit</button>
+                <button class="text-button danger-text" type="button" (click)="delete(product)">Delete</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  <div class="pagination">
+    <span>Page {{ pageNumber }} of {{ pageCount }}</span>
+    <div>
+      <label class="page-size">
+        Rows
+        <select [ngModel]="pageSize" (ngModelChange)="changePageSize($event)" name="pageSize">
+          @for (size of pageSizeOptions; track size) {
+            <option [ngValue]="size">{{ size }}</option>
+          }
+        </select>
+      </label>
+      <button class="button button-secondary" type="button" [disabled]="pageNumber <= 1 || loading" (click)="changePage(pageNumber - 1)">Previous</button>
+      <button class="button button-secondary" type="button" [disabled]="pageNumber >= pageCount || loading" (click)="changePage(pageNumber + 1)">Next</button>
+    </div>
+  </div>
+  @if (productToDelete) {
+    <div class="modal-backdrop" (click)="cancelDelete()">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-title" (click)="$event.stopPropagation()">
+        <h3 id="delete-title">Delete product?</h3>
+        <p>Are you sure you want to delete <strong>{{ productToDelete.name }}</strong>? This action cannot be undone.</p>
+        <div class="modal-actions">
+          <button class="button button-secondary" type="button" (click)="cancelDelete()">Cancel</button>
+          <button class="button danger-button" type="button" (click)="confirmDelete()">Delete</button>
+        </div>
+      </div>
+    </div>
+  }
+</section>

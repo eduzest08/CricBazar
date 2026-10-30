@@ -42,6 +42,8 @@ public interface IBrandRepository
     Task<bool> DeleteAsync(int id);
     Task<Brand?> GetBySlugAsync(string slug);
     Task<IEnumerable<Brand>> GetActiveBrandsAsync();
+    Task<(IEnumerable<Brand> items, int totalCount)> SearchAsync(
+        string? searchTerm, bool? isActive, string? sortBy, bool descending, int pageNumber, int pageSize);
 }
 
 public interface IReviewRepository

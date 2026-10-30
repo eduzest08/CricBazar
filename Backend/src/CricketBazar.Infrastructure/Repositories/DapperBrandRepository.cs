@@ -19,7 +19,7 @@ public class DapperBrandRepository : DapperRepository<Brand>, IBrandRepository
 
     public async Task<Brand?> GetByIdAsync(int id)
     {
-        const string sql = "SELECT * FROM dbo.Brands WHERE Id = @Id AND IsActive = 1";
+        const string sql = "SELECT * FROM dbo.Brands WHERE Id = @Id";
         using (var connection = _connectionFactory.GetConnection())
         {
             return await connection.QueryFirstOrDefaultAsync<Brand>(sql, new { Id = id });
@@ -101,6 +101,49 @@ public class DapperBrandRepository : DapperRepository<Brand>, IBrandRepository
         {
             var rowsAffected = await connection.ExecuteAsync(sql, new { Id = id });
             return rowsAffected > 0;
+        }
+    }
+
+    public async Task<(IEnumerable<Brand> items, int totalCount)> SearchAsync(
+        string? searchTerm, bool? isActive, string? sortBy, bool descending, int pageNumber, int pageSize)
+    {
+        if (pageNumber < 1) pageNumber = 1;
+        if (pageSize < 1) pageSize = 10;
+        if (pageSize > 100) pageSize = 100;
+
+        // Column names come from a whitelist, never from user input directly
+        var sortColumn = (sortBy ?? "name").ToLowerInvariant() switch
+        {
+            "id" => "Id",
+            "slug" => "Slug",
+            "isactive" => "IsActive",
+            _ => "Name"
+        };
+        var direction = descending ? "DESC" : "ASC";
+
+        const string where = @"
+            WHERE (@SearchTerm IS NULL OR Name LIKE '%' + @SearchTerm + '%' OR Slug LIKE '%' + @SearchTerm + '%')
+              AND (@IsActive IS NULL OR IsActive = @IsActive)";
+
+        var countSql = $"SELECT COUNT(*) FROM dbo.Brands {where}";
+        var sql = $@"
+            SELECT * FROM dbo.Brands {where}
+            ORDER BY {sortColumn} {direction}, Id ASC
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
+
+        var parameters = new
+        {
+            SearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim(),
+            IsActive = isActive,
+            Offset = (pageNumber - 1) * pageSize,
+            PageSize = pageSize
+        };
+
+        using (var connection = _connectionFactory.GetConnection())
+        {
+            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, parameters);
+            var items = await connection.QueryAsync<Brand>(sql, parameters);
+            return (items, totalCount);
         }
     }
 
