@@ -1,0 +1,30 @@
+<main class="login-page">
+  <form class="login-card" #loginForm="ngForm" (ngSubmit)="signIn()">
+    <div class="brand">
+      <span class="brand-icon">CB</span>
+      <span>CricBazar <small>ADMIN CONSOLE</small></span>
+    </div>
+    <h1>Sign in</h1>
+
+    @if (errorMessage) {
+      <p class="error" role="alert">{{ errorMessage }}</p>
+    }
+
+    <label>
+      <span>User ID</span>
+      <input name="userId" type="text" autocomplete="username" required [(ngModel)]="userId" />
+    </label>
+    <label>
+      <span>Password</span>
+      <input
+        name="password"
+        type="password"
+        autocomplete="current-password"
+        required
+        [(ngModel)]="password"
+      />
+    </label>
+
+    <button type="submit" [disabled]="loginForm.invalid">Sign in</button>
+  </form>
+</main>

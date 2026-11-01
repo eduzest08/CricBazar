@@ -1,17 +1,33 @@
-<div class="admin-shell">
+<div class="admin-shell" [class.collapsed]="sidebarCollapsed">
   <aside class="sidebar">
-    <a class="brand-mark" routerLink="/admin/products" aria-label="CricBazar admin home">
+    <a class="brand-mark" routerLink="/admin/dashboard" aria-label="CricBazar admin home">
       <span class="brand-icon">CB</span>
-      <span>CricBazar <small>ADMIN CONSOLE</small></span>
+      <span class="label">CricBazar <small>ADMIN CONSOLE</small></span>
     </a>
+    <button
+      class="sidebar-toggle"
+      type="button"
+      [attr.aria-label]="sidebarCollapsed ? 'Expand menu' : 'Collapse menu'"
+      [attr.aria-expanded]="!sidebarCollapsed"
+      (click)="sidebarCollapsed = !sidebarCollapsed"
+    >
+      {{ sidebarCollapsed ? '»' : '«' }}
+    </button>
 
-    <div class="nav-label">CATALOG</div>
     <nav aria-label="Admin navigation">
+      <a routerLink="/admin/dashboard" routerLinkActive="active">
+        <span class="nav-icon">⌂</span> <span class="label">Dashboard</span>
+      </a>
+    </nav>
+
+    <div class="nav-label label">CATALOG</div>
+    <nav aria-label="Catalog navigation">
       <div class="nav-folder">
-        <button class="folder-toggle" type="button" [attr.aria-expanded]="productsOpen" (click)="productsOpen = !productsOpen">
-          <span class="nav-icon">{{ productsOpen ? '📂' : '📁' }}</span> PRODUCTS
+        <button class="folder-toggle" type="button" [attr.aria-expanded]="productsOpen" (click)="toggleProducts()">
+          <span class="nav-icon">{{ productsOpen ? '📂' : '📁' }}</span>
+          <span class="label">PRODUCTS</span>
         </button>
-        @if (productsOpen) {
+        @if (productsOpen && !sidebarCollapsed) {
           <div class="folder-children">
             <a routerLink="/admin/brands" routerLinkActive="active">
               <span class="nav-icon">◇</span> Brands
@@ -19,9 +35,47 @@
             <a routerLink="/admin/categories" routerLinkActive="active">
               <span class="nav-icon">▤</span> Categories
             </a>
-            <a routerLink="/admin/products" routerLinkActive="active">
-              <span class="nav-icon">▦</span> Products
-            </a>
+            <div class="nav-subfolder">
+              <div class="nav-subfolder-heading">
+                <button
+                  class="subfolder-label"
+                  type="button"
+                  [attr.aria-expanded]="productChildrenOpen"
+                  (click)="productChildrenOpen = !productChildrenOpen"
+                >
+                  <span class="nav-icon">{{ productChildrenOpen ? '📂' : '📁' }}</span>
+                  <span class="label">Product Details</span>
+                </button>
+                <button
+                  class="subfolder-toggle"
+                  type="button"
+                  aria-label="Toggle Product Details submenu"
+                  [attr.aria-expanded]="productChildrenOpen"
+                  (click)="productChildrenOpen = !productChildrenOpen"
+                >
+                  {{ productChildrenOpen ? '⌄' : '›' }}
+                </button>
+              </div>
+              @if (productChildrenOpen) {
+                <div class="subfolder-children">
+                  <a routerLink="/admin/products" routerLinkActive="active">
+                    <span class="nav-icon">▦</span> Products
+                  </a>
+                  <a routerLink="/admin/product-attributes" routerLinkActive="active">
+                    <span class="nav-icon">◇</span> Product Attributes
+                  </a>
+                  <a routerLink="/admin/product-variants" routerLinkActive="active">
+                    <span class="nav-icon">▦</span> Product Variants
+                  </a>
+                  <a routerLink="/admin/product-images" routerLinkActive="active">
+                    <span class="nav-icon">▧</span> Product Image
+                  </a>
+                  <a routerLink="/admin/reviews" routerLinkActive="active">
+                    <span class="nav-icon">☆</span> Reviews
+                  </a>
+                </div>
+              }
+            </div>
           </div>
         }
       </div>
@@ -29,7 +83,8 @@
 
     <div class="sidebar-footer">
       <span class="status-dot"></span>
-      <span>Admin mode <small>Authentication is disabled</small></span>
+      <span class="label">Admin mode <small>Signed in as admin</small></span>
+      <button class="logout-button label" type="button" (click)="logout()">Sign out</button>
     </div>
   </aside>
 

@@ -10,8 +10,20 @@ import {
   CategoryDraft,
   PaginatedResponse,
   Product,
+  ProductAttribute,
+  ProductAttributePayload,
+  ProductAttributeQuery,
   ProductDraft,
+  ProductImage,
+  ProductImagePayload,
+  ProductImageQuery,
+  Review,
+  ReviewPayload,
+  ReviewQuery,
   ProductPayload,
+  ProductVariant,
+  ProductVariantPayload,
+  ProductVariantQuery,
 } from '../models/catalog.models';
 
 @Injectable({ providedIn: 'root' })
@@ -117,5 +129,138 @@ export class CatalogApiService {
 
   deleteBrand(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/brands/${id}`);
+  }
+
+  getProductAttributes(
+    query: ProductAttributeQuery,
+  ): Observable<PaginatedResponse<ProductAttribute>> {
+    let params = new HttpParams()
+      .set('pageNumber', query.pageNumber)
+      .set('pageSize', query.pageSize)
+      .set('sortBy', query.sortBy)
+      .set('sortDirection', query.sortDirection);
+    if (query.searchTerm.trim()) {
+      params = params.set('searchTerm', query.searchTerm.trim());
+    }
+    if (query.productId !== null) {
+      params = params.set('productId', query.productId);
+    }
+
+    return this.http.get<PaginatedResponse<ProductAttribute>>(
+      `${this.baseUrl}/product-attributes`,
+      { params },
+    );
+  }
+
+  createProductAttribute(attribute: ProductAttributePayload): Observable<ProductAttribute> {
+    return this.http.post<ProductAttribute>(`${this.baseUrl}/product-attributes`, attribute);
+  }
+
+  updateProductAttribute(
+    id: number,
+    attribute: ProductAttributePayload,
+  ): Observable<ProductAttribute> {
+    return this.http.put<ProductAttribute>(`${this.baseUrl}/product-attributes/${id}`, attribute);
+  }
+
+  deleteProductAttribute(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/product-attributes/${id}`);
+  }
+
+  getProductVariants(query: ProductVariantQuery): Observable<PaginatedResponse<ProductVariant>> {
+    let params = new HttpParams()
+      .set('pageNumber', query.pageNumber)
+      .set('pageSize', query.pageSize)
+      .set('sortBy', query.sortBy)
+      .set('sortDirection', query.sortDirection);
+    if (query.searchTerm.trim()) {
+      params = params.set('searchTerm', query.searchTerm.trim());
+    }
+    if (query.productId !== null) {
+      params = params.set('productId', query.productId);
+    }
+
+    return this.http.get<PaginatedResponse<ProductVariant>>(`${this.baseUrl}/product-variants`, {
+      params,
+    });
+  }
+
+  createProductVariant(variant: ProductVariantPayload): Observable<ProductVariant> {
+    return this.http.post<ProductVariant>(`${this.baseUrl}/product-variants`, variant);
+  }
+
+  updateProductVariant(id: number, variant: ProductVariantPayload): Observable<ProductVariant> {
+    return this.http.put<ProductVariant>(`${this.baseUrl}/product-variants/${id}`, variant);
+  }
+
+  deleteProductVariant(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/product-variants/${id}`);
+  }
+
+  getProductImages(query: ProductImageQuery): Observable<PaginatedResponse<ProductImage>> {
+    let params = new HttpParams()
+      .set('pageNumber', query.pageNumber)
+      .set('pageSize', query.pageSize)
+      .set('sortBy', query.sortBy)
+      .set('sortDirection', query.sortDirection);
+    if (query.searchTerm.trim()) {
+      params = params.set('searchTerm', query.searchTerm.trim());
+    }
+    if (query.productId !== null) {
+      params = params.set('productId', query.productId);
+    }
+
+    return this.http.get<PaginatedResponse<ProductImage>>(`${this.baseUrl}/product-images`, {
+      params,
+    });
+  }
+
+  uploadProductImage(file: File): Observable<{ url: string }> {
+    const body = new FormData();
+    body.append('file', file);
+    return this.http.post<{ url: string }>(`${this.baseUrl}/product-images/upload`, body);
+  }
+
+  createProductImage(image: ProductImagePayload): Observable<ProductImage> {
+    return this.http.post<ProductImage>(`${this.baseUrl}/product-images`, image);
+  }
+
+  updateProductImage(id: number, image: ProductImagePayload): Observable<ProductImage> {
+    return this.http.put<ProductImage>(`${this.baseUrl}/product-images/${id}`, image);
+  }
+
+  deleteProductImage(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/product-images/${id}`);
+  }
+
+  getReviews(query: ReviewQuery): Observable<PaginatedResponse<Review>> {
+    let params = new HttpParams()
+      .set('pageNumber', query.pageNumber)
+      .set('pageSize', query.pageSize)
+      .set('sortBy', query.sortBy)
+      .set('sortDirection', query.sortDirection);
+    if (query.searchTerm.trim()) {
+      params = params.set('searchTerm', query.searchTerm.trim());
+    }
+    if (query.productId !== null) {
+      params = params.set('productId', query.productId);
+    }
+    if (query.rating !== null) {
+      params = params.set('rating', query.rating);
+    }
+
+    return this.http.get<PaginatedResponse<Review>>(`${this.baseUrl}/admin/reviews`, { params });
+  }
+
+  createReview(review: ReviewPayload): Observable<Review> {
+    return this.http.post<Review>(`${this.baseUrl}/admin/reviews`, review);
+  }
+
+  updateReview(id: number, review: ReviewPayload): Observable<Review> {
+    return this.http.put<Review>(`${this.baseUrl}/admin/reviews/${id}`, review);
+  }
+
+  deleteReview(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/admin/reviews/${id}`);
   }
 }

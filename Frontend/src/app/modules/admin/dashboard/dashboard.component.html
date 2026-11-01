@@ -1,0 +1,30 @@
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">OVERVIEW</span>
+    <h1>Dashboard</h1>
+    <p>A quick summary of your catalog.</p>
+  </div>
+</div>
+
+@if (errorMessage) {
+  <p class="error" role="alert">{{ errorMessage }}</p>
+}
+
+<section class="stats" aria-label="Catalog summary">
+  <a class="stat-card" routerLink="/admin/products">
+    <span>Products</span>
+    <strong>{{ loading ? '–' : productCount }}</strong>
+  </a>
+  <a class="stat-card" routerLink="/admin/categories">
+    <span>Categories</span>
+    <strong>{{ loading ? '–' : categoryCount }}</strong>
+  </a>
+  <a class="stat-card" routerLink="/admin/brands">
+    <span>Brands</span>
+    <strong>{{ loading ? '–' : brandCount }}</strong>
+  </a>
+  <a class="stat-card" routerLink="/admin/products">
+    <span>Low stock (≤ 5)</span>
+    <strong>{{ loading ? '–' : lowStockCount }}</strong>
+  </a>
+</section>

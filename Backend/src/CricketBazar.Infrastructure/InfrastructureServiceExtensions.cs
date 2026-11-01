@@ -25,6 +25,9 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IProductRepository, DapperProductRepository>();
         services.AddScoped<ICategoryRepository, DapperCategoryRepository>();
         services.AddScoped<IBrandRepository, DapperBrandRepository>();
+        services.AddScoped<IProductAttributeRepository, DapperProductAttributeRepository>();
+        services.AddScoped<IProductVariantRepository, DapperProductVariantRepository>();
+        services.AddScoped<IProductImageRepository, DapperProductImageRepository>();
         services.AddScoped<IReviewRepository, DapperReviewRepository>();
         services.AddScoped<IUserRepository, DapperUserRepository>();
         services.AddScoped<ICartRepository, DapperCartRepository>();
@@ -58,6 +61,9 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IProductRepository, DapperProductRepository>();
         services.AddScoped<ICategoryRepository, DapperCategoryRepository>();
         services.AddScoped<IBrandRepository, DapperBrandRepository>();
+        services.AddScoped<IProductAttributeRepository, DapperProductAttributeRepository>();
+        services.AddScoped<IProductVariantRepository, DapperProductVariantRepository>();
+        services.AddScoped<IProductImageRepository, DapperProductImageRepository>();
         services.AddScoped<IReviewRepository, DapperReviewRepository>();
         services.AddScoped<IUserRepository, DapperUserRepository>();
         services.AddScoped<ICartRepository, DapperCartRepository>();

@@ -248,8 +248,16 @@
     width: min(360px, 50%);
     gap: 8px;
 
+    &:has(select) {
+      width: min(700px, 70%);
+    }
+
+    select {
+      flex: 0 0 170px;
+    }
+
     input {
-      min-width: 0;
+      min-width: 160px;
       flex: 1;
       border: 1px solid #dfe6e0;
       border-radius: 7px;

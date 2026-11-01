@@ -1,0 +1,141 @@
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">PRODUCT CATALOG</span>
+    <h1>Product Attributes</h1>
+    <p>Manage the attributes used to describe products.</p>
+  </div>
+  <button class="button button-primary" type="button" (click)="reset()">
+    <span aria-hidden="true">＋</span> Add attribute
+  </button>
+</div>
+
+@if (errorMessage) {
+  <div class="alert alert-error" role="alert">{{ errorMessage }}</div>
+}
+@if (successMessage) {
+  <div class="alert alert-success" role="status">{{ successMessage }}</div>
+}
+
+<section class="editor-card">
+  <div class="section-heading">
+    <div>
+      <h2>{{ editingId === null ? 'Create an attribute' : 'Edit attribute' }}</h2>
+      <p>Product, attribute name, and value</p>
+    </div>
+    @if (editingId !== null) {
+      <button class="text-button" type="button" (click)="reset()">Cancel edit</button>
+    }
+  </div>
+
+  <form #attributeForm="ngForm" (ngSubmit)="save()">
+    <div class="form-grid">
+      <label class="wide-field">
+        <span class="field-label">Product <b>*</b></span>
+        <select [(ngModel)]="draft.productId" name="productId" required>
+          <option [ngValue]="null" disabled>Select product</option>
+          @for (product of products; track product.id) {
+            <option [ngValue]="product.id">{{ product.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span class="field-label">Attribute name <b>*</b></span>
+        <input [(ngModel)]="draft.name" name="name" required maxlength="100" placeholder="Willow type" />
+      </label>
+      <label>
+        <span class="field-label">Value <b>*</b></span>
+        <input [(ngModel)]="draft.value" name="value" required maxlength="300" placeholder="English willow" />
+      </label>
+    </div>
+    <div class="form-footer">
+      <span class="form-note">Each product can have one attribute per name.</span>
+      <button class="button button-primary" type="submit" [disabled]="attributeForm.invalid || saving">
+        {{ saving ? 'Saving…' : editingId === null ? 'Create attribute' : 'Save changes' }}
+      </button>
+    </div>
+  </form>
+</section>
+
+<section class="table-card">
+  <div class="table-toolbar">
+    <div>
+      <h2>All attributes</h2>
+      <p>{{ totalCount }} attributes</p>
+    </div>
+    <form class="search-form" (ngSubmit)="search()">
+      <select
+        [ngModel]="productFilter"
+        (ngModelChange)="changeProductFilter($event)"
+        name="productFilter"
+        aria-label="Filter by product"
+      >
+        <option [ngValue]="null">All products</option>
+        @for (product of products; track product.id) {
+          <option [ngValue]="product.id">{{ product.name }}</option>
+        }
+      </select>
+      <input [(ngModel)]="searchTerm" name="search" aria-label="Search attributes" placeholder="Search product, name or value…" />
+      <button class="button button-secondary" type="submit">Search</button>
+      <button class="button button-secondary" type="button" (click)="loadAttributes()">Refresh</button>
+    </form>
+  </div>
+
+  @if (loading) {
+    <div class="inline-loader" role="status">Loading attributes…</div>
+  } @else if (!attributes.length) {
+    <div class="empty-state">No attributes found. Create your first attribute above.</div>
+  } @else {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th [attr.aria-sort]="ariaSort('product')"><button class="sort-button" type="button" (click)="sort('product')">PRODUCT {{ sortIndicator('product') }}</button></th>
+            <th [attr.aria-sort]="ariaSort('name')"><button class="sort-button" type="button" (click)="sort('name')">ATTRIBUTE {{ sortIndicator('name') }}</button></th>
+            <th [attr.aria-sort]="ariaSort('value')"><button class="sort-button" type="button" (click)="sort('value')">VALUE {{ sortIndicator('value') }}</button></th>
+            <th><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (attribute of attributes; track attribute.id) {
+            <tr>
+              <td><strong>{{ attribute.productName }}</strong><small>#{{ attribute.id }}</small></td>
+              <td>{{ attribute.name }}</td>
+              <td>{{ attribute.value }}</td>
+              <td class="actions">
+                <button class="text-button" type="button" (click)="edit(attribute)">Edit</button>
+                <button class="text-button danger-text" type="button" (click)="delete(attribute)">Delete</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  @if (attributeToDelete) {
+    <div class="modal-backdrop" (click)="cancelDelete()" (keydown.escape)="cancelDelete()">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-title" (click)="$event.stopPropagation()">
+        <h3 id="delete-title">Delete attribute?</h3>
+        <p>Are you sure you want to delete <strong>{{ attributeToDelete.name }}</strong> from <strong>{{ attributeToDelete.productName }}</strong>? This action cannot be undone.</p>
+        <div class="modal-actions">
+          <button class="button button-secondary" type="button" (click)="cancelDelete()">Cancel</button>
+          <button class="button danger-button" type="button" (click)="confirmDelete()">Delete</button>
+        </div>
+      </div>
+    </div>
+  }
+  <div class="pagination">
+    <span>Page {{ pageNumber }} of {{ pageCount }}</span>
+    <div>
+      <label class="page-size">
+        Rows
+        <select [ngModel]="pageSize" (ngModelChange)="changePageSize($event)" name="pageSize">
+          @for (size of pageSizeOptions; track size) {
+            <option [ngValue]="size">{{ size }}</option>
+          }
+        </select>
+      </label>
+      <button class="button button-secondary" type="button" [disabled]="pageNumber <= 1 || loading" (click)="changePage(pageNumber - 1)">Previous</button>
+      <button class="button button-secondary" type="button" [disabled]="pageNumber >= pageCount || loading" (click)="changePage(pageNumber + 1)">Next</button>
+    </div>
+  </div>
+</section>

@@ -46,8 +46,24 @@ public interface IBrandRepository
         string? searchTerm, bool? isActive, string? sortBy, bool descending, int pageNumber, int pageSize);
 }
 
+public class ReviewListItem
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public int UserId { get; set; }
+    public string UserName { get; set; } = string.Empty;
+    public byte Rating { get; set; }
+    public string? Comment { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
 public interface IReviewRepository
 {
+    Task<ReviewListItem?> GetListItemByIdAsync(int id);
+    Task<bool> UpdateAsync(Review entity);
+    Task<(IEnumerable<ReviewListItem> items, int totalCount)> SearchAsync(
+        string? searchTerm, int? productId, int? rating, string? sortBy, bool descending, int pageNumber, int pageSize);
     Task<Review?> GetByIdAsync(int id);
     Task<int> AddAsync(Review entity);
     Task<bool> DeleteAsync(int id);

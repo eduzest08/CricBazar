@@ -1,0 +1,164 @@
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">PRODUCT CATALOG</span>
+    <h1>Product Variants</h1>
+    <p>Manage product variants such as sizes, colors and hand orientation.</p>
+  </div>
+  <button class="button button-primary" type="button" (click)="reset()">
+    <span aria-hidden="true">＋</span> Add variant
+  </button>
+</div>
+
+@if (errorMessage) {
+  <div class="alert alert-error" role="alert">{{ errorMessage }}</div>
+}
+@if (successMessage) {
+  <div class="alert alert-success" role="status">{{ successMessage }}</div>
+}
+
+<section class="editor-card">
+  <div class="section-heading">
+    <div>
+      <h2>{{ editingId === null ? 'Create a variant' : 'Edit variant' }}</h2>
+      <p>Product, size, color, hand, stock, and optional price override</p>
+    </div>
+    @if (editingId !== null) {
+      <button class="text-button" type="button" (click)="reset()">Cancel edit</button>
+    }
+  </div>
+
+  <form #variantForm="ngForm" (ngSubmit)="save()">
+    <div class="form-grid">
+      <label class="wide-field">
+        <span class="field-label">Product <b>*</b></span>
+        <select [(ngModel)]="draft.productId" name="productId" required>
+          <option [ngValue]="null" disabled>Select product</option>
+          @for (product of products; track product.id) {
+            <option [ngValue]="product.id">{{ product.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span class="field-label">Size</span>
+        <input [(ngModel)]="draft.size" name="size" maxlength="50" placeholder="Short handle" />
+      </label>
+      <label>
+        <span class="field-label">Color</span>
+        <input [(ngModel)]="draft.color" name="color" maxlength="50" placeholder="Natural" />
+      </label>
+      <label>
+        <span class="field-label">Hand</span>
+        <select [(ngModel)]="draft.hand" name="hand">
+          <option value="">Not applicable</option>
+          @for (hand of handOptions; track hand) {
+            <option [value]="hand">{{ hand }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span class="field-label">Stock <b>*</b></span>
+        <input [(ngModel)]="draft.stock" name="stock" type="number" min="0" step="1" required />
+      </label>
+      <label>
+        <span class="field-label">Price override</span>
+        <input [(ngModel)]="draft.priceOverride" name="priceOverride" type="number" min="0" step="0.01" placeholder="Uses product price" />
+      </label>
+    </div>
+    <div class="form-footer">
+      <span class="form-note">Enter at least one of size, color or hand. Leave price blank to use the product price.</span>
+      <button class="button button-primary" type="submit" [disabled]="variantForm.invalid || saving">
+        {{ saving ? 'Saving…' : editingId === null ? 'Create variant' : 'Save changes' }}
+      </button>
+    </div>
+  </form>
+</section>
+
+<section class="table-card">
+  <div class="table-toolbar">
+    <div>
+      <h2>All variants</h2>
+      <p>{{ totalCount }} variants</p>
+    </div>
+    <form class="search-form" (ngSubmit)="search()">
+      <select
+        [ngModel]="productFilter"
+        (ngModelChange)="changeProductFilter($event)"
+        name="productFilter"
+        aria-label="Filter by product"
+      >
+        <option [ngValue]="null">All products</option>
+        @for (product of products; track product.id) {
+          <option [ngValue]="product.id">{{ product.name }}</option>
+        }
+      </select>
+      <input [(ngModel)]="searchTerm" name="search" aria-label="Search variants" placeholder="Search product, size, color or hand…" />
+      <button class="button button-secondary" type="submit">Search</button>
+      <button class="button button-secondary" type="button" (click)="loadVariants()">Refresh</button>
+    </form>
+  </div>
+
+  @if (loading) {
+    <div class="inline-loader" role="status">Loading variants…</div>
+  } @else if (!variants.length) {
+    <div class="empty-state">No variants found. Create your first variant above.</div>
+  } @else {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th [attr.aria-sort]="ariaSort('product')"><button class="sort-button" type="button" (click)="sort('product')">PRODUCT {{ sortIndicator('product') }}</button></th>
+            <th [attr.aria-sort]="ariaSort('size')"><button class="sort-button" type="button" (click)="sort('size')">SIZE {{ sortIndicator('size') }}</button></th>
+            <th [attr.aria-sort]="ariaSort('color')"><button class="sort-button" type="button" (click)="sort('color')">COLOR {{ sortIndicator('color') }}</button></th>
+            <th [attr.aria-sort]="ariaSort('hand')"><button class="sort-button" type="button" (click)="sort('hand')">HAND {{ sortIndicator('hand') }}</button></th>
+            <th [attr.aria-sort]="ariaSort('stock')"><button class="sort-button" type="button" (click)="sort('stock')">STOCK {{ sortIndicator('stock') }}</button></th>
+            <th [attr.aria-sort]="ariaSort('priceOverride')"><button class="sort-button" type="button" (click)="sort('priceOverride')">PRICE OVERRIDE {{ sortIndicator('priceOverride') }}</button></th>
+            <th><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (variant of variants; track variant.id) {
+            <tr>
+              <td><strong>{{ variant.productName }}</strong><small>#{{ variant.id }}</small></td>
+              <td>{{ variant.size || '—' }}</td>
+              <td>{{ variant.color || '—' }}</td>
+              <td>{{ variant.hand || '—' }}</td>
+              <td>{{ variant.stock }}</td>
+              <td>{{ variant.priceOverride === null ? '—' : (variant.priceOverride | number: '1.2-2') }}</td>
+              <td class="actions">
+                <button class="text-button" type="button" (click)="edit(variant)">Edit</button>
+                <button class="text-button danger-text" type="button" (click)="delete(variant)">Delete</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  @if (variantToDelete) {
+    <div class="modal-backdrop" (click)="cancelDelete()" (keydown.escape)="cancelDelete()">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-title" (click)="$event.stopPropagation()">
+        <h3 id="delete-title">Delete variant?</h3>
+        <p>Are you sure you want to delete the <strong>{{ describe(variantToDelete) }}</strong> variant of <strong>{{ variantToDelete.productName }}</strong>? This action cannot be undone.</p>
+        <div class="modal-actions">
+          <button class="button button-secondary" type="button" (click)="cancelDelete()">Cancel</button>
+          <button class="button danger-button" type="button" (click)="confirmDelete()">Delete</button>
+        </div>
+      </div>
+    </div>
+  }
+  <div class="pagination">
+    <span>Page {{ pageNumber }} of {{ pageCount }}</span>
+    <div>
+      <label class="page-size">
+        Rows
+        <select [ngModel]="pageSize" (ngModelChange)="changePageSize($event)" name="pageSize">
+          @for (size of pageSizeOptions; track size) {
+            <option [ngValue]="size">{{ size }}</option>
+          }
+        </select>
+      </label>
+      <button class="button button-secondary" type="button" [disabled]="pageNumber <= 1 || loading" (click)="changePage(pageNumber - 1)">Previous</button>
+      <button class="button button-secondary" type="button" [disabled]="pageNumber >= pageCount || loading" (click)="changePage(pageNumber + 1)">Next</button>
+    </div>
+  </div>
+</section>

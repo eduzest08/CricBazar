@@ -92,3 +92,139 @@ export interface BrandQuery {
 }
 
 export type ProductSortField = 'name' | 'sku' | 'salePrice' | 'stock' | 'id';
+
+export interface ProductAttribute {
+  id: number;
+  productId: number;
+  productName: string;
+  name: string;
+  value: string;
+}
+
+export interface ProductAttributeDraft {
+  productId: number | null;
+  name: string;
+  value: string;
+}
+
+export type ProductAttributePayload = Omit<ProductAttributeDraft, 'productId'> & {
+  productId: number;
+};
+
+export type ProductAttributeSortField = 'name' | 'value' | 'product' | 'id';
+
+export interface ProductAttributeQuery {
+  pageNumber: number;
+  pageSize: number;
+  searchTerm: string;
+  productId: number | null;
+  sortBy: ProductAttributeSortField;
+  sortDirection: 'asc' | 'desc';
+}
+
+export interface ProductVariant {
+  id: number;
+  productId: number;
+  productName: string;
+  size: string | null;
+  color: string | null;
+  hand: string | null;
+  stock: number;
+  priceOverride: number | null;
+}
+
+export interface ProductVariantDraft {
+  productId: number | null;
+  size: string;
+  color: string;
+  hand: string;
+  stock: number;
+  priceOverride: number | null;
+}
+
+export interface ProductVariantPayload {
+  productId: number;
+  size: string | null;
+  color: string | null;
+  hand: string | null;
+  stock: number;
+  priceOverride: number | null;
+}
+
+export type ProductVariantSortField =
+  | 'product'
+  | 'size'
+  | 'color'
+  | 'hand'
+  | 'stock'
+  | 'priceOverride'
+  | 'id';
+
+export interface ProductVariantQuery {
+  pageNumber: number;
+  pageSize: number;
+  searchTerm: string;
+  productId: number | null;
+  sortBy: ProductVariantSortField;
+  sortDirection: 'asc' | 'desc';
+}
+
+export interface ProductImage {
+  id: number;
+  productId: number;
+  productName: string;
+  url: string;
+  sortOrder: number;
+}
+
+export interface ProductImageDraft {
+  productId: number | null;
+  url: string;
+  sortOrder: number;
+}
+
+export interface ProductImagePayload {
+  productId: number;
+  url: string;
+  sortOrder: number;
+}
+
+export type ProductImageSortField = 'product' | 'sortOrder' | 'id';
+
+export interface ProductImageQuery {
+  pageNumber: number;
+  pageSize: number;
+  searchTerm: string;
+  productId: number | null;
+  sortBy: ProductImageSortField;
+  sortDirection: 'asc' | 'desc';
+}
+
+export interface Review {
+  id: number;
+  productId: number;
+  productName: string;
+  userId: number;
+  userName: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+}
+
+export type ReviewSortField = 'date' | 'product' | 'user' | 'rating';
+
+export interface ReviewQuery {
+  pageNumber: number;
+  pageSize: number;
+  searchTerm: string;
+  productId: number | null;
+  rating: number | null;
+  sortBy: ReviewSortField;
+  sortDirection: 'asc' | 'desc';
+}
+
+export interface ReviewPayload {
+  productId: number;
+  rating: number;
+  comment: string | null;
+}
