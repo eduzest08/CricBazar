@@ -10,6 +10,7 @@ public class Product
     public int BrandId { get; set; }
     public decimal Mrp { get; set; }
     public decimal SalePrice { get; set; }
+    public decimal CostPrice { get; set; }
     public int DiscountPct { get; set; }
     public string? ShortDesc { get; set; }
     public string? Description { get; set; }

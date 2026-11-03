@@ -39,6 +39,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Sku).IsRequired().HasMaxLength(60);
             entity.Property(e => e.Mrp).HasPrecision(10, 2);
             entity.Property(e => e.SalePrice).HasPrecision(10, 2);
+            entity.Property(e => e.CostPrice).HasPrecision(10, 2);
             entity.Property(e => e.AvgRating).HasPrecision(3, 2);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             entity.HasIndex(e => e.Slug).IsUnique();

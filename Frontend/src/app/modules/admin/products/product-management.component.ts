@@ -9,6 +9,7 @@ import {
   Category,
   Product,
   ProductDraft,
+  ProductImage,
   ProductPayload,
   ProductSortField,
 } from '../../../core/models/catalog.models';
@@ -22,6 +23,7 @@ function emptyProductDraft(): ProductDraft {
     brandId: null,
     mrp: 0,
     salePrice: 0,
+    costPrice: 0,
     shortDesc: '',
     description: '',
     stock: 0,
@@ -53,6 +55,7 @@ export class ProductManagementComponent implements OnInit {
   sortBy: ProductSortField = 'name';
   sortDirection: 'asc' | 'desc' = 'asc';
   totalCount = 0;
+  activeTab: 'active' | 'inactive' = 'active';
   loading = false;
   saving = false;
   errorMessage = '';
@@ -82,12 +85,85 @@ export class ProductManagementComponent implements OnInit {
     });
   }
 
+  tabCounts = { active: 0, inactive: 0 };
+
+  viewerProduct: Product | null = null;
+  viewerImages: ProductImage[] = [];
+  viewerIndex = 0;
+  viewerLoading = false;
+  viewerError = '';
+
+  get viewerCurrent(): ProductImage | null {
+    return this.viewerImages[this.viewerIndex] ?? null;
+  }
+
+  assetUrl(url: string): string {
+    return this.api.resolveAssetUrl(url);
+  }
+
+  openImageViewer(product: Product): void {
+    this.viewerProduct = product;
+    this.viewerImages = [];
+    this.viewerIndex = 0;
+    this.viewerError = '';
+    this.viewerLoading = true;
+    this.api
+      .getProductImages({
+        pageNumber: 1,
+        pageSize: 100,
+        searchTerm: '',
+        productId: product.id,
+        sortBy: 'sortOrder',
+        sortDirection: 'asc',
+        isActive: true,
+      })
+      .subscribe({
+        next: (page) => {
+          this.viewerImages = page.items;
+          this.viewerLoading = false;
+          this.changeDetector.markForCheck();
+        },
+        error: (error: unknown) => {
+          this.viewerError = getApiErrorMessage(error);
+          this.viewerLoading = false;
+          this.changeDetector.markForCheck();
+        },
+      });
+  }
+
+  closeImageViewer(): void {
+    this.viewerProduct = null;
+  }
+
+  selectViewerImage(index: number): void {
+    this.viewerIndex = index;
+  }
+
+  stepViewer(step: number): void {
+    const count = this.viewerImages.length;
+    if (count) {
+      this.viewerIndex = (this.viewerIndex + step + count) % count;
+    }
+  }
+
+  private loadTabCounts(): void {
+    for (const isActive of [true, false]) {
+      this.api.getProducts(this.searchTerm, 1, 1, 'newest', isActive).subscribe({
+        next: (page) => {
+          this.tabCounts = { ...this.tabCounts, [isActive ? 'active' : 'inactive']: page.totalCount };
+          this.changeDetector.markForCheck();
+        },
+      });
+    }
+  }
+
   loadProducts(): void {
     this.loading = true;
     this.errorMessage = '';
+    this.loadTabCounts();
     const sortKey = this.sortBy === 'salePrice' ? 'price' : this.sortBy;
     this.api
-      .getProducts(this.searchTerm, this.pageNumber, this.pageSize, `${sortKey}_${this.sortDirection}`)
+      .getProducts(this.searchTerm, this.pageNumber, this.pageSize, `${sortKey}_${this.sortDirection}`, this.activeTab === 'active')
       .subscribe({
       next: (response) => {
         this.products = response.items;
@@ -98,6 +174,47 @@ export class ProductManagementComponent implements OnInit {
       error: (error: unknown) => {
         this.errorMessage = getApiErrorMessage(error);
         this.loading = false;
+        this.changeDetector.markForCheck();
+      },
+    });
+  }
+
+  selectTab(tab: 'active' | 'inactive'): void {
+    if (this.activeTab === tab) {
+      return;
+    }
+    this.activeTab = tab;
+    this.pageNumber = 1;
+    this.loadProducts();
+  }
+
+  restore(product: Product): void {
+    this.errorMessage = '';
+    this.successMessage = '';
+    const payload: ProductPayload = {
+      name: product.name,
+      slug: product.slug,
+      sku: product.sku,
+      categoryId: product.categoryId,
+      brandId: product.brandId,
+      mrp: product.mrp,
+      salePrice: product.salePrice,
+      costPrice: product.costPrice ?? 0,
+      shortDesc: product.shortDesc ?? '',
+      description: product.description ?? '',
+      stock: product.stock,
+      metaTitle: product.metaTitle ?? '',
+      metaDesc: product.metaDesc ?? '',
+      isActive: true,
+    };
+    this.api.updateProduct(product.id, payload).subscribe({
+      next: () => {
+        this.successMessage = 'Product restored to Active.';
+        this.loadProducts();
+        this.changeDetector.markForCheck();
+      },
+      error: (error: unknown) => {
+        this.errorMessage = getApiErrorMessage(error);
         this.changeDetector.markForCheck();
       },
     });
@@ -165,6 +282,7 @@ export class ProductManagementComponent implements OnInit {
       brandId: product.brandId,
       mrp: product.mrp,
       salePrice: product.salePrice,
+      costPrice: product.costPrice ?? 0,
       shortDesc: product.shortDesc ?? '',
       description: product.description ?? '',
       stock: product.stock,
@@ -238,7 +356,7 @@ export class ProductManagementComponent implements OnInit {
     this.successMessage = '';
     this.api.deleteProduct(product.id).subscribe({
       next: () => {
-        this.successMessage = 'Product deleted.';
+        this.successMessage = 'Product moved to Inactive.';
         if (this.editingId === product.id) {
           this.startCreate();
         }

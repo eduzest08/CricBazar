@@ -7,6 +7,7 @@ export interface Product {
   brandId: number;
   mrp: number;
   salePrice: number;
+  costPrice: number;
   discountPct: number;
   shortDesc: string | null;
   description: string | null;
@@ -28,6 +29,7 @@ export interface ProductDraft {
   brandId: number | null;
   mrp: number;
   salePrice: number;
+  costPrice: number;
   shortDesc: string;
   description: string;
   stock: number;
@@ -120,6 +122,7 @@ export interface ProductAttributeQuery {
   productId: number | null;
   sortBy: ProductAttributeSortField;
   sortDirection: 'asc' | 'desc';
+  isActive?: boolean;
 }
 
 export interface ProductVariant {
@@ -167,6 +170,7 @@ export interface ProductVariantQuery {
   productId: number | null;
   sortBy: ProductVariantSortField;
   sortDirection: 'asc' | 'desc';
+  isActive?: boolean;
 }
 
 export interface ProductImage {
@@ -198,6 +202,7 @@ export interface ProductImageQuery {
   productId: number | null;
   sortBy: ProductImageSortField;
   sortDirection: 'asc' | 'desc';
+  isActive?: boolean;
 }
 
 export interface Review {

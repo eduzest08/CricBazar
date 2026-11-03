@@ -23,5 +23,5 @@ public interface IProductVariantRepository
     Task<bool> UpdateAsync(ProductVariant entity);
     Task<bool> DeleteAsync(int id);
     Task<(IEnumerable<ProductVariantListItem> items, int totalCount)> SearchAsync(
-        string? searchTerm, int? productId, string? sortBy, bool descending, int pageNumber, int pageSize);
+        string? searchTerm, int? productId, string? sortBy, bool descending, int pageNumber, int pageSize, bool isActive = true);
 }

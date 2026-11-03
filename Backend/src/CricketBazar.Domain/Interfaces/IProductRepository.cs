@@ -14,7 +14,7 @@ public interface IProductRepository
     Task<Product?> GetBySlugAsync(string slug);
     Task<IEnumerable<Product>> GetByCategoryAsync(int categoryId);
     Task<IEnumerable<Product>> GetByBrandAsync(int brandId);
-    Task<(IEnumerable<Product> items, int totalCount)> SearchAsync(string? search = null, int? categoryId = null, int? brandId = null, decimal? minPrice = null, decimal? maxPrice = null, int pageNumber = 1, int pageSize = 20, string sortBy = "newest");
+    Task<(IEnumerable<Product> items, int totalCount)> SearchAsync(string? search = null, int? categoryId = null, int? brandId = null, decimal? minPrice = null, decimal? maxPrice = null, int pageNumber = 1, int pageSize = 20, string sortBy = "newest", bool isActive = true);
 }
 
 public interface ICategoryRepository

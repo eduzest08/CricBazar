@@ -83,7 +83,7 @@ public class DapperProductAttributeRepository : DapperRepository<ProductAttribut
     }
 
     public async Task<(IEnumerable<ProductAttributeListItem> items, int totalCount)> SearchAsync(
-        string? searchTerm, int? productId, string? sortBy, bool descending, int pageNumber, int pageSize)
+        string? searchTerm, int? productId, string? sortBy, bool descending, int pageNumber, int pageSize, bool isActive = true)
     {
         if (pageNumber < 1) pageNumber = 1;
         if (pageSize < 1) pageSize = 10;
@@ -103,7 +103,8 @@ public class DapperProductAttributeRepository : DapperRepository<ProductAttribut
         const string where = @"
             WHERE (@SearchTerm IS NULL OR pa.Name LIKE '%' + @SearchTerm + '%'
                    OR pa.Value LIKE '%' + @SearchTerm + '%' OR p.Name LIKE '%' + @SearchTerm + '%')
-              AND (@ProductId IS NULL OR pa.ProductId = @ProductId)";
+              AND (@ProductId IS NULL OR pa.ProductId = @ProductId)
+              AND p.IsActive = @IsActive";
 
         var countSql = $@"
             SELECT COUNT(*) FROM dbo.ProductAttributes pa
@@ -117,6 +118,7 @@ public class DapperProductAttributeRepository : DapperRepository<ProductAttribut
         {
             SearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim(),
             ProductId = productId,
+            IsActive = isActive,
             Offset = (pageNumber - 1) * pageSize,
             PageSize = pageSize
         };

@@ -44,7 +44,8 @@ public class GetProductsListQueryHandler : IRequestHandler<GetProductsListQuery,
             request.MaxPrice,
             request.PageNumber,
             request.PageSize,
-            request.SortBy ?? "newest"
+            request.SortBy ?? "newest",
+            request.IsActive
         );
 
         var productDtos = _mapper.Map<List<ProductDto>>(result.Item1);

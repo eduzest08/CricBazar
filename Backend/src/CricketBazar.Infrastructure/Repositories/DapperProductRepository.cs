@@ -124,7 +124,8 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
         decimal? maxPrice = null,
         int pageNumber = 1,
         int pageSize = 10,
-        string sortBy = "newest")
+        string sortBy = "newest",
+        bool isActive = true)
     {
         if (pageNumber < 1) pageNumber = 1;
         if (pageSize < 1) pageSize = 10;
@@ -132,8 +133,9 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
 
         var offset = (pageNumber - 1) * pageSize;
 
-        var whereConditions = new List<string> { "IsActive = 1" };
+        var whereConditions = new List<string> { "IsActive = @IsActive" };
         var parameters = new DynamicParameters();
+        parameters.Add("@IsActive", isActive);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -242,9 +244,9 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
     {
         const string sql = @"
             INSERT INTO dbo.Products 
-            (Name, Slug, Sku, CategoryId, BrandId, Mrp, SalePrice, ShortDesc, Description, Stock, AvgRating, ReviewCount, SalesCount, SortOrder, MetaTitle, MetaDesc, IsActive, CreatedAt)
+            (Name, Slug, Sku, CategoryId, BrandId, Mrp, SalePrice, CostPrice, ShortDesc, Description, Stock, AvgRating, ReviewCount, SalesCount, SortOrder, MetaTitle, MetaDesc, IsActive, CreatedAt)
             VALUES 
-            (@Name, @Slug, @Sku, @CategoryId, @BrandId, @Mrp, @SalePrice, @ShortDesc, @Description, @Stock, @AvgRating, @ReviewCount, @SalesCount, @SortOrder, @MetaTitle, @MetaDesc, @IsActive, @CreatedAt);
+            (@Name, @Slug, @Sku, @CategoryId, @BrandId, @Mrp, @SalePrice, @CostPrice, @ShortDesc, @Description, @Stock, @AvgRating, @ReviewCount, @SalesCount, @SortOrder, @MetaTitle, @MetaDesc, @IsActive, @CreatedAt);
             
             SELECT CAST(SCOPE_IDENTITY() as int)";
 
@@ -262,7 +264,7 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
         const string sql = @"
             UPDATE dbo.Products 
             SET Name = @Name, Slug = @Slug, Sku = @Sku, CategoryId = @CategoryId, BrandId = @BrandId, 
-                Mrp = @Mrp, SalePrice = @SalePrice, ShortDesc = @ShortDesc, Description = @Description, 
+                Mrp = @Mrp, SalePrice = @SalePrice, CostPrice = @CostPrice, ShortDesc = @ShortDesc, Description = @Description, 
                 Stock = @Stock, AvgRating = @AvgRating, ReviewCount = @ReviewCount, SalesCount = @SalesCount, 
                 SortOrder = @SortOrder, MetaTitle = @MetaTitle, MetaDesc = @MetaDesc, IsActive = @IsActive
             WHERE Id = @Id";

@@ -74,7 +74,7 @@ public class DapperProductImageRepository : DapperRepository<ProductImage>, IPro
     }
 
     public async Task<(IEnumerable<ProductImageListItem> items, int totalCount)> SearchAsync(
-        string? searchTerm, int? productId, string? sortBy, bool descending, int pageNumber, int pageSize)
+        string? searchTerm, int? productId, string? sortBy, bool descending, int pageNumber, int pageSize, bool isActive = true)
     {
         if (pageNumber < 1) pageNumber = 1;
         if (pageSize < 1) pageSize = 10;
@@ -98,7 +98,8 @@ public class DapperProductImageRepository : DapperRepository<ProductImage>, IPro
 
         const string where = @"
             WHERE (@SearchTerm IS NULL OR p.Name LIKE '%' + @SearchTerm + '%' OR pi.Url LIKE '%' + @SearchTerm + '%')
-              AND (@ProductId IS NULL OR pi.ProductId = @ProductId)";
+              AND (@ProductId IS NULL OR pi.ProductId = @ProductId)
+              AND p.IsActive = @IsActive";
 
         var countSql = $@"
             SELECT COUNT(*) FROM dbo.ProductImages pi
@@ -112,6 +113,7 @@ public class DapperProductImageRepository : DapperRepository<ProductImage>, IPro
         {
             SearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim(),
             ProductId = productId,
+            IsActive = isActive,
             Offset = (pageNumber - 1) * pageSize,
             PageSize = pageSize
         };

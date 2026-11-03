@@ -55,3 +55,27 @@
   border-color: #c62828;
   color: #fff;
 }
+
+.tabs {
+  border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+  display: flex;
+  gap: 4px;
+  margin: 12px 0;
+}
+
+.tab-button {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  opacity: 0.65;
+  padding: 8px 16px;
+
+  &.active {
+    border-bottom-color: currentColor;
+    opacity: 1;
+  }
+}

@@ -90,7 +90,7 @@ public class DapperProductVariantRepository : DapperRepository<ProductVariant>, 
     }
 
     public async Task<(IEnumerable<ProductVariantListItem> items, int totalCount)> SearchAsync(
-        string? searchTerm, int? productId, string? sortBy, bool descending, int pageNumber, int pageSize)
+        string? searchTerm, int? productId, string? sortBy, bool descending, int pageNumber, int pageSize, bool isActive = true)
     {
         if (pageNumber < 1) pageNumber = 1;
         if (pageSize < 1) pageSize = 10;
@@ -114,7 +114,8 @@ public class DapperProductVariantRepository : DapperRepository<ProductVariant>, 
             WHERE (@SearchTerm IS NULL OR p.Name LIKE '%' + @SearchTerm + '%'
                    OR pv.Size LIKE '%' + @SearchTerm + '%' OR pv.Color LIKE '%' + @SearchTerm + '%'
                    OR pv.Hand LIKE '%' + @SearchTerm + '%')
-              AND (@ProductId IS NULL OR pv.ProductId = @ProductId)";
+              AND (@ProductId IS NULL OR pv.ProductId = @ProductId)
+              AND p.IsActive = @IsActive";
 
         var countSql = $@"
             SELECT COUNT(*) FROM dbo.ProductVariants pv
@@ -128,6 +129,7 @@ public class DapperProductVariantRepository : DapperRepository<ProductVariant>, 
         {
             SearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim(),
             ProductId = productId,
+            IsActive = isActive,
             Offset = (pageNumber - 1) * pageSize,
             PageSize = pageSize
         };

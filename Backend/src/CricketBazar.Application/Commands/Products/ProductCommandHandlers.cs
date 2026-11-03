@@ -80,7 +80,8 @@ public class DeleteProductCommandHandler : IRequestHandler<DeleteProductCommand,
         if (product == null)
             return false;
 
-        await _repository.DeleteAsync(request.Id);
+        product.IsActive = false;
+        await _repository.UpdateAsync(product);
         return true;
     }
 }

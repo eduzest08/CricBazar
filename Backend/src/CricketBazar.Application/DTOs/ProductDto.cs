@@ -11,6 +11,7 @@ public class ProductDto
     public int BrandId { get; set; }
     public decimal Mrp { get; set; }
     public decimal SalePrice { get; set; }
+    public decimal CostPrice { get; set; }
     public int DiscountPct { get; set; }
     public string? ShortDesc { get; set; }
     public string? Description { get; set; }
@@ -38,6 +39,7 @@ public class CreateProductDto
     public int BrandId { get; set; }
     public decimal Mrp { get; set; }
     public decimal SalePrice { get; set; }
+    public decimal CostPrice { get; set; }
     public string? ShortDesc { get; set; }
     public string? Description { get; set; }
     public int Stock { get; set; }
@@ -56,6 +58,7 @@ public class UpdateProductDto
     public int BrandId { get; set; }
     public decimal Mrp { get; set; }
     public decimal SalePrice { get; set; }
+    public decimal CostPrice { get; set; }
     public string? ShortDesc { get; set; }
     public string? Description { get; set; }
     public int Stock { get; set; }

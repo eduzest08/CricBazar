@@ -38,6 +38,8 @@ export class ProductVariantsComponent implements OnInit {
   sortDirection: 'asc' | 'desc' = 'asc';
   draft = emptyVariantDraft();
   editingId: number | null = null;
+  activeTab: 'active' | 'inactive' = 'active';
+  filterProducts: Product[] = [];
   loading = false;
   saving = false;
   errorMessage = '';
@@ -49,6 +51,7 @@ export class ProductVariantsComponent implements OnInit {
     this.api.getProducts('', 1, 100, 'name_asc').subscribe({
       next: (page) => {
         this.products = page.items;
+        this.filterProducts = page.items;
         this.changeDetector.markForCheck();
       },
       error: (error: unknown) => {
@@ -62,9 +65,33 @@ export class ProductVariantsComponent implements OnInit {
     return Math.max(1, Math.ceil(this.totalCount / this.pageSize));
   }
 
+  tabCounts = { active: 0, inactive: 0 };
+
+  private loadTabCounts(): void {
+    for (const isActive of [true, false]) {
+      this.api
+        .getProductVariants({
+          pageNumber: 1,
+          pageSize: 1,
+          searchTerm: this.searchTerm,
+          productId: this.productFilter,
+          sortBy: this.sortBy,
+          sortDirection: this.sortDirection,
+          isActive,
+        })
+        .subscribe({
+          next: (page) => {
+            this.tabCounts = { ...this.tabCounts, [isActive ? 'active' : 'inactive']: page.totalCount };
+            this.changeDetector.markForCheck();
+          },
+        });
+    }
+  }
+
   loadVariants(): void {
     this.loading = true;
     this.errorMessage = '';
+    this.loadTabCounts();
     this.api
       .getProductVariants({
         pageNumber: this.pageNumber,
@@ -73,6 +100,7 @@ export class ProductVariantsComponent implements OnInit {
         productId: this.productFilter,
         sortBy: this.sortBy,
         sortDirection: this.sortDirection,
+        isActive: this.activeTab === 'active',
       })
       .subscribe({
         next: (page) => {
@@ -91,6 +119,25 @@ export class ProductVariantsComponent implements OnInit {
           this.changeDetector.markForCheck();
         },
       });
+  }
+
+  selectTab(tab: 'active' | 'inactive'): void {
+    if (this.activeTab === tab) {
+      return;
+    }
+    this.activeTab = tab;
+    this.productFilter = null;
+    this.loadFilterProducts();
+    this.search();
+  }
+
+  private loadFilterProducts(): void {
+    this.api.getProducts('', 1, 100, 'name_asc', this.activeTab === 'active').subscribe({
+      next: (page) => {
+        this.filterProducts = page.items;
+        this.changeDetector.markForCheck();
+      },
+    });
   }
 
   search(): void {

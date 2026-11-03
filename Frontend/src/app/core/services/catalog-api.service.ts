@@ -36,11 +36,13 @@ export class CatalogApiService {
     pageNumber = 1,
     pageSize = 20,
     sortBy = 'newest',
+    isActive = true,
   ): Observable<PaginatedResponse<Product>> {
     let params = new HttpParams()
       .set('pageNumber', pageNumber)
       .set('pageSize', pageSize)
-      .set('sortBy', sortBy);
+      .set('sortBy', sortBy)
+      .set('isActive', isActive);
     if (searchTerm.trim()) {
       params = params.set('searchTerm', searchTerm.trim());
     }
@@ -138,7 +140,8 @@ export class CatalogApiService {
       .set('pageNumber', query.pageNumber)
       .set('pageSize', query.pageSize)
       .set('sortBy', query.sortBy)
-      .set('sortDirection', query.sortDirection);
+      .set('sortDirection', query.sortDirection)
+      .set('isActive', query.isActive ?? true);
     if (query.searchTerm.trim()) {
       params = params.set('searchTerm', query.searchTerm.trim());
     }
@@ -172,7 +175,8 @@ export class CatalogApiService {
       .set('pageNumber', query.pageNumber)
       .set('pageSize', query.pageSize)
       .set('sortBy', query.sortBy)
-      .set('sortDirection', query.sortDirection);
+      .set('sortDirection', query.sortDirection)
+      .set('isActive', query.isActive ?? true);
     if (query.searchTerm.trim()) {
       params = params.set('searchTerm', query.searchTerm.trim());
     }
@@ -202,7 +206,8 @@ export class CatalogApiService {
       .set('pageNumber', query.pageNumber)
       .set('pageSize', query.pageSize)
       .set('sortBy', query.sortBy)
-      .set('sortDirection', query.sortDirection);
+      .set('sortDirection', query.sortDirection)
+      .set('isActive', query.isActive ?? true);
     if (query.searchTerm.trim()) {
       params = params.set('searchTerm', query.searchTerm.trim());
     }

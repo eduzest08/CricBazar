@@ -135,7 +135,7 @@
         aria-label="Filter by product"
       >
         <option [ngValue]="null">All products</option>
-        @for (product of products; track product.id) {
+        @for (product of filterProducts; track product.id) {
           <option [ngValue]="product.id">{{ product.name }}</option>
         }
       </select>
@@ -143,6 +143,11 @@
       <button class="button button-secondary" type="submit">Search</button>
       <button class="button button-secondary" type="button" (click)="loadImages()">Refresh</button>
     </form>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab-button" type="button" role="tab" [class.active]="activeTab === 'active'" [attr.aria-selected]="activeTab === 'active'" (click)="selectTab('active')">Active ({{ tabCounts.active }})</button>
+    <button class="tab-button" type="button" role="tab" [class.active]="activeTab === 'inactive'" [attr.aria-selected]="activeTab === 'inactive'" (click)="selectTab('inactive')">Inactive ({{ tabCounts.inactive }})</button>
   </div>
 
   @if (loading) {

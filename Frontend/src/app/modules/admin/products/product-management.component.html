@@ -72,6 +72,10 @@
         <input [(ngModel)]="draft.salePrice" name="salePrice" type="number" min="0" step="0.01" required />
       </label>
       <label>
+        Cost price
+        <input [(ngModel)]="draft.costPrice" name="costPrice" type="number" min="0" step="0.01" required />
+      </label>
+      <label>
         Stock quantity
         <input [(ngModel)]="draft.stock" name="stock" type="number" min="0" step="1" required />
       </label>
@@ -117,10 +121,15 @@
     </form>
   </div>
 
+  <div class="tabs" role="tablist">
+    <button class="tab-button" type="button" role="tab" [class.active]="activeTab === 'active'" [attr.aria-selected]="activeTab === 'active'" (click)="selectTab('active')">Active ({{ tabCounts.active }})</button>
+    <button class="tab-button" type="button" role="tab" [class.active]="activeTab === 'inactive'" [attr.aria-selected]="activeTab === 'inactive'" (click)="selectTab('inactive')">Inactive ({{ tabCounts.inactive }})</button>
+  </div>
+
   @if (loading) {
     <div class="inline-loader" role="status">Loading products…</div>
   } @else if (!products.length) {
-    <div class="empty-state">No products found. Create your first catalog item above.</div>
+    <div class="empty-state">{{ activeTab === 'active' ? 'No active products found. Create your first catalog item above.' : 'No inactive products.' }}</div>
   } @else {
     <div class="table-scroll">
       <table>
@@ -130,6 +139,7 @@
             <th [attr.aria-sort]="ariaSort('sku')"><button class="sort-button" type="button" (click)="sort('sku')">SKU {{ sortIndicator('sku') }}</button></th>
             <th>CATEGORY / BRAND</th>
             <th [attr.aria-sort]="ariaSort('salePrice')"><button class="sort-button" type="button" (click)="sort('salePrice')">PRICE {{ sortIndicator('salePrice') }}</button></th>
+            <th>COST</th>
             <th [attr.aria-sort]="ariaSort('stock')"><button class="sort-button" type="button" (click)="sort('stock')">STOCK {{ sortIndicator('stock') }}</button></th>
             <th>STATUS</th>
             <th><span class="sr-only">Actions</span></th>
@@ -153,11 +163,17 @@
                   <small class="strikethrough">{{ product.mrp | currency:'INR':'symbol':'1.0-2' }}</small>
                 }
               </td>
+              <td>{{ product.costPrice | currency:'INR':'symbol':'1.0-2' }}</td>
               <td>{{ product.stock }}</td>
               <td><span class="status-pill" [class.inactive]="!product.isActive">{{ product.isActive ? 'Active' : 'Inactive' }}</span></td>
               <td class="actions">
                 <button class="text-button" type="button" (click)="edit(product)">Edit</button>
-                <button class="text-button danger-text" type="button" (click)="delete(product)">Delete</button>
+                <button class="text-button" type="button" (click)="openImageViewer(product)">Image viewer</button>
+                @if (product.isActive) {
+                  <button class="text-button danger-text" type="button" (click)="delete(product)">Delete</button>
+                } @else {
+                  <button class="text-button" type="button" (click)="restore(product)">Restore</button>
+                }
               </td>
             </tr>
           }
@@ -180,11 +196,46 @@
       <button class="button button-secondary" type="button" [disabled]="pageNumber >= pageCount || loading" (click)="changePage(pageNumber + 1)">Next</button>
     </div>
   </div>
+  @if (viewerProduct) {
+    <div class="modal-backdrop" (click)="closeImageViewer()" (keydown.escape)="closeImageViewer()">
+      <div class="modal viewer-modal" role="dialog" aria-modal="true" aria-labelledby="viewer-title" (click)="$event.stopPropagation()">
+        <div class="viewer-header">
+          <h3 id="viewer-title">{{ viewerProduct.name }} — Images</h3>
+          <button class="text-button" type="button" aria-label="Close" (click)="closeImageViewer()">✕</button>
+        </div>
+        @if (viewerLoading) {
+          <p>Loading images...</p>
+        } @else if (viewerError) {
+          <p class="danger-text">{{ viewerError }}</p>
+        } @else if (!viewerImages.length) {
+          <p>No images uploaded for this product.</p>
+        } @else {
+          <div class="viewer-main">
+            @if (viewerImages.length > 1) {
+              <button class="viewer-nav viewer-prev" type="button" aria-label="Previous image" (click)="stepViewer(-1)">‹</button>
+            }
+            <img [src]="assetUrl(viewerCurrent!.url)" [alt]="viewerProduct.name + ' image ' + (viewerIndex + 1)" />
+            @if (viewerImages.length > 1) {
+              <button class="viewer-nav viewer-next" type="button" aria-label="Next image" (click)="stepViewer(1)">›</button>
+            }
+            <span class="viewer-badge">{{ viewerIndex === 0 ? 'Main image' : 'Image ' + (viewerIndex + 1) }} of {{ viewerImages.length }}</span>
+          </div>
+          <div class="viewer-thumbs">
+            @for (image of viewerImages; track image.id; let i = $index) {
+              <button class="viewer-thumb" [class.active]="i === viewerIndex" type="button" [attr.aria-label]="'Show image ' + (i + 1)" (click)="selectViewerImage(i)">
+                <img [src]="assetUrl(image.url)" [alt]="'Thumbnail ' + (i + 1)" />
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
   @if (productToDelete) {
     <div class="modal-backdrop" (click)="cancelDelete()">
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-title" (click)="$event.stopPropagation()">
-        <h3 id="delete-title">Delete product?</h3>
-        <p>Are you sure you want to delete <strong>{{ productToDelete.name }}</strong>? This action cannot be undone.</p>
+        <h3 id="delete-title">Move product to Inactive?</h3>
+        <p><strong>{{ productToDelete.name }}</strong> will be moved to the Inactive tab. You can restore it later.</p>
         <div class="modal-actions">
           <button class="button button-secondary" type="button" (click)="cancelDelete()">Cancel</button>
           <button class="button danger-button" type="button" (click)="confirmDelete()">Delete</button>

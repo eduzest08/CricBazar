@@ -33,7 +33,8 @@ public class ProductsController : ControllerBase
         [FromQuery] decimal? minPrice = null,
         [FromQuery] decimal? maxPrice = null,
         [FromQuery] string? searchTerm = null,
-        [FromQuery] string? sortBy = "newest")
+        [FromQuery] string? sortBy = "newest",
+        [FromQuery] bool isActive = true)
     {
         _logger.LogInformation("Getting products - Page: {PageNumber}, Size: {PageSize}, Category: {CategoryId}", pageNumber, pageSize, categoryId);
         
@@ -46,7 +47,8 @@ public class ProductsController : ControllerBase
             MinPrice = minPrice,
             MaxPrice = maxPrice,
             SearchTerm = searchTerm,
-            SortBy = sortBy
+            SortBy = sortBy,
+            IsActive = isActive
         };
 
         var products = await _mediator.Send(query);
@@ -130,7 +132,7 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
-    /// Delete a product (Admin only)
+    /// Soft-delete a product: marks it inactive so it can be restored later (Admin only)
     /// </summary>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

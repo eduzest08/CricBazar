@@ -1,6 +1,6 @@
 ### Cricket Bazar API Testing
 ### Base URL
-@baseUrl = http://localhost:5000/api/v1
+@baseUrl = http://localhost:5080/api/v1
 @userId = 1
 @productId = 1
 @categoryId = 1

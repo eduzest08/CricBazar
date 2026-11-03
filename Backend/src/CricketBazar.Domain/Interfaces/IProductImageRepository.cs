@@ -19,5 +19,5 @@ public interface IProductImageRepository
     Task<bool> UpdateAsync(ProductImage entity);
     Task<bool> DeleteAsync(int id);
     Task<(IEnumerable<ProductImageListItem> items, int totalCount)> SearchAsync(
-        string? searchTerm, int? productId, string? sortBy, bool descending, int pageNumber, int pageSize);
+        string? searchTerm, int? productId, string? sortBy, bool descending, int pageNumber, int pageSize, bool isActive = true);
 }

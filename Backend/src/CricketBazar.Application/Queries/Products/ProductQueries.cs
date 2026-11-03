@@ -23,6 +23,7 @@ public class GetProductsListQuery : IRequest<PaginatedResponse<ProductDto>>
     public decimal? MaxPrice { get; set; }
     public string? SearchTerm { get; set; }
     public string? SortBy { get; set; } = "newest";
+    public bool IsActive { get; set; } = true;
 }
 
 public class GetProductBySlugQuery : IRequest<ProductDto?>

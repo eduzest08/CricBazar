@@ -35,7 +35,8 @@ public class ProductVariantsController : ControllerBase
         [FromQuery] string? searchTerm = null,
         [FromQuery] int? productId = null,
         [FromQuery] string? sortBy = "product",
-        [FromQuery] string? sortDirection = "asc")
+        [FromQuery] string? sortDirection = "asc",
+        [FromQuery] bool isActive = true)
     {
         pageNumber = Math.Max(1, pageNumber);
         pageSize = Math.Clamp(pageSize, 1, 100);
@@ -43,7 +44,7 @@ public class ProductVariantsController : ControllerBase
         var (items, totalCount) = await _repository.SearchAsync(
             searchTerm, productId, sortBy,
             string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase),
-            pageNumber, pageSize);
+            pageNumber, pageSize, isActive);
 
         return Ok(new PaginatedResponse<ProductVariantListItemDto>
         {
