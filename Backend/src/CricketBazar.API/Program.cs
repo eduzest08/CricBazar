@@ -1,6 +1,8 @@
 using CricketBazar.Application;
 using CricketBazar.Infrastructure;
 using CricketBazar.Shared.Constants;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -99,17 +101,26 @@ try
     {
         app.Lifetime.ApplicationStarted.Register(() =>
         {
-            const string adminUrl = "http://localhost:4200/admin/products";
             try
             {
-                var psi = OperatingSystem.IsMacOS() ? new System.Diagnostics.ProcessStartInfo("open", adminUrl)
-                    : OperatingSystem.IsLinux() ? new System.Diagnostics.ProcessStartInfo("xdg-open", adminUrl)
-                    : new System.Diagnostics.ProcessStartInfo(adminUrl) { UseShellExecute = true };
+                var addresses = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()?.Addresses;
+                var address = addresses?.FirstOrDefault();
+                if (address is null)
+                {
+                    Log.Warning("Could not determine the API address. Visit http://localhost:4200/admin/products");
+                    return;
+                }
+                var url = new UriBuilder(address) { Path = "/" };
+                if (url.Host is "0.0.0.0" or "[::]" or "*" or "+") url.Host = "localhost";
+                var launchUrl = url.Uri.ToString();
+                var psi = OperatingSystem.IsMacOS() ? new System.Diagnostics.ProcessStartInfo("open", launchUrl)
+                    : OperatingSystem.IsLinux() ? new System.Diagnostics.ProcessStartInfo("xdg-open", launchUrl)
+                    : new System.Diagnostics.ProcessStartInfo(launchUrl) { UseShellExecute = true };
                 System.Diagnostics.Process.Start(psi);
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Could not open the browser. Visit {Url}", adminUrl);
+                Log.Warning(ex, "Could not open the browser. Visit http://localhost:4200/admin/products");
             }
         });
     }
@@ -119,6 +130,7 @@ try
 catch (Exception ex)
 {
     Log.Fatal(ex, "Application terminated unexpectedly");
+    Environment.ExitCode = 1;
 }
 finally
 {

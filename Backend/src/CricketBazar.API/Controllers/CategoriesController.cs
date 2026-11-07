@@ -121,6 +121,24 @@ public class CategoriesController : ControllerBase
         }
     }
 
+    /// <summary>Reorder all categories belonging to the same parent.</summary>
+    [HttpPut("order")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Reorder([FromBody] ReorderCategoriesRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Categories.Any(item => item is null || item.Id <= 0) ||
+            request.Categories.Select(item => item.Id).Distinct().Count() != request.Categories.Count ||
+            request.ParentId is <= 0)
+            return BadRequest(new ProblemDetails { Title = "Invalid category order", Status = StatusCodes.Status400BadRequest });
+
+        var updated = await _mediator.Send(new ReorderCategoriesCommand(request), cancellationToken);
+        return updated
+            ? NoContent()
+            : Conflict(new ProblemDetails { Title = "Category order changed. Refresh and try again.", Status = StatusCodes.Status409Conflict });
+    }
+
     /// <summary>
     /// Delete a category (Admin only)
     /// </summary>

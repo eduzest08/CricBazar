@@ -2,6 +2,7 @@ namespace CricketBazar.Application.Commands.Products;
 
 using MediatR;
 using CricketBazar.Application.DTOs;
+using CricketBazar.Domain.Interfaces;
 
 public class CreateProductCommand : IRequest<ProductDto>
 {
@@ -23,6 +24,8 @@ public class DeleteProductCommand : IRequest<bool>
         Id = id;
     }
 }
+
+public record DeleteInactiveProductCommand(int Id) : IRequest<PermanentProductDeleteResult>;
 
 public class AddProductImageCommand : IRequest<ProductImageDto>
 {

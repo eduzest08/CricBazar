@@ -117,8 +117,8 @@
               </td>
               <td><span class="status-pill" [class.inactive]="!brand.isActive">{{ brand.isActive ? 'Active' : 'Inactive' }}</span></td>
               <td class="actions">
-                <button class="text-button" type="button" (click)="edit(brand)">Edit</button>
-                <button class="text-button danger-text" type="button" (click)="delete(brand)">Delete</button>
+                <button class="icon-button" type="button" title="Edit" [attr.aria-label]="'Edit ' + brand.name" (click)="edit(brand)"><app-action-icon name="edit" /></button>
+                <button class="icon-button danger-text" type="button" title="Delete" [attr.aria-label]="'Delete ' + brand.name" (click)="delete(brand)"><app-action-icon name="delete" /></button>
               </td>
             </tr>
           }

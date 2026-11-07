@@ -1,4 +1,5 @@
 using Dapper;
+using System.Data;
 using CricketBazar.Infrastructure.Data;
 using CricketBazar.Domain.Entities;
 using CricketBazar.Domain.Interfaces;
@@ -18,6 +19,27 @@ public class DapperProductImageRepository : DapperRepository<ProductImage>, IPro
     public DapperProductImageRepository(ISqlConnectionFactory connectionFactory)
         : base(connectionFactory)
     {
+    }
+
+    public async Task<bool> ReorderAsync(int productId, IReadOnlyList<(int Id, int SortOrder)> images, CancellationToken cancellationToken)
+    {
+        await using var connection = _connectionFactory.GetConnection();
+        await connection.OpenAsync(cancellationToken);
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var current = (await connection.QueryAsync<(int Id, int SortOrder)>(new CommandDefinition(
+            "SELECT Id, SortOrder FROM dbo.ProductImages WITH (UPDLOCK, HOLDLOCK) WHERE ProductId = @ProductId",
+            new { ProductId = productId }, transaction, cancellationToken: cancellationToken))).ToArray();
+        var expected = images.ToDictionary(image => image.Id, image => image.SortOrder);
+        if (current.Length != expected.Count || current.Any(image => !expected.TryGetValue(image.Id, out var order) || order != image.SortOrder))
+            return false;
+        for (var index = 0; index < images.Count; index++)
+        {
+            await connection.ExecuteAsync(new CommandDefinition(
+                "UPDATE dbo.ProductImages SET SortOrder = @SortOrder WHERE Id = @Id AND ProductId = @ProductId",
+                new { images[index].Id, ProductId = productId, SortOrder = index }, transaction, cancellationToken: cancellationToken));
+        }
+        transaction.Commit();
+        return true;
     }
 
     public async Task<ProductImage?> GetByIdAsync(int id)

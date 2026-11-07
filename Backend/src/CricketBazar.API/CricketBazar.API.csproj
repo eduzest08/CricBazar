@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <SpaRoot>..\..\..\Frontend\</SpaRoot>
     <SpaProxyServerUrl>http://localhost:4200</SpaProxyServerUrl>
+    <SpaProxyRedirectUrl>http://localhost:4200/admin/products</SpaProxyRedirectUrl>
     <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>
   </PropertyGroup>
 

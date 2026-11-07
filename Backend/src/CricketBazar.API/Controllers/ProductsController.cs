@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using CricketBazar.Application.DTOs;
 using CricketBazar.Application.Commands.Products;
 using CricketBazar.Application.Queries.Products;
+using CricketBazar.Domain.Interfaces;
 
 [ApiController]
 [Route("api/v1/[controller]")]
@@ -151,6 +152,27 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
+    /// Permanently delete an inactive product and its catalog, cart and wishlist records, unless it has order history.
+    /// </summary>
+    [HttpDelete("{id}/permanent")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeletePermanent(int id, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Permanently deleting inactive product with ID: {ProductId}", id);
+        var result = await _mediator.Send(new DeleteInactiveProductCommand(id), cancellationToken);
+        return result switch
+        {
+            PermanentProductDeleteResult.Deleted => NoContent(),
+            PermanentProductDeleteResult.NotFound => NotFound(new { message = "Product not found." }),
+            PermanentProductDeleteResult.Active => Conflict(new { message = "Only inactive products can be permanently deleted." }),
+            PermanentProductDeleteResult.HasOrderHistory => Conflict(new { message = "This product is linked to order history and cannot be permanently deleted." }),
+            _ => throw new InvalidOperationException("Unexpected permanent product deletion result.")
+        };
+    }
+
+    /// <summary>
     /// Add image to product (Admin only)
     /// </summary>
     [HttpPost("{productId}/images")]
@@ -196,4 +218,3 @@ public class ProductsController : ControllerBase
         }
     }
 }
-

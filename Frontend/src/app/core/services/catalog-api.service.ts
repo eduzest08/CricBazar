@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { AuthService } from '../auth/auth.service';
 import {
   Brand,
   BrandDraft,
@@ -29,6 +30,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class CatalogApiService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly baseUrl = environment.apiBaseUrl;
 
   getProducts(
@@ -52,8 +54,15 @@ export class CatalogApiService {
     });
   }
 
+  getProduct(id: number): Observable<Product> {
+    return this.http.get<Product>(`${this.baseUrl}/products/${id}`);
+  }
+
   createProduct(product: ProductPayload): Observable<Product> {
-    return this.http.post<Product>(`${this.baseUrl}/products`, product);
+    return this.http.post<Product>(`${this.baseUrl}/products`, {
+      ...product,
+      createdByUserId: this.auth.userId,
+    });
   }
 
   updateProduct(id: number, product: ProductPayload): Observable<Product> {
@@ -62,6 +71,10 @@ export class CatalogApiService {
 
   deleteProduct(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/products/${id}`);
+  }
+
+  deleteProductPermanently(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/products/${id}/permanent`);
   }
 
   getCategories(): Observable<Category[]> {
@@ -78,6 +91,10 @@ export class CatalogApiService {
 
   updateCategory(id: number, category: CategoryDraft): Observable<Category> {
     return this.http.put<Category>(`${this.baseUrl}/categories/${id}`, category);
+  }
+
+  reorderCategories(parentId: number | null, categories: { id: number; sortOrder: number }[]): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/categories/order`, { parentId, categories });
   }
 
   deleteCategory(id: number): Observable<void> {
@@ -236,6 +253,10 @@ export class CatalogApiService {
 
   deleteProductImage(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/product-images/${id}`);
+  }
+
+  reorderProductImages(productId: number, images: { id: number; sortOrder: number }[]): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/product-images/order`, { productId, images });
   }
 
   getReviews(query: ReviewQuery): Observable<PaginatedResponse<Review>> {

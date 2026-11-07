@@ -1,14 +1,14 @@
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
-import { Observable, map, of } from 'rxjs';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { EMPTY, Observable, Subscription, expand, map, of, reduce } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { CatalogApiService } from '../../../core/services/catalog-api.service';
 import {
   Product,
   ProductImage,
   ProductImageDraft,
-  ProductImageSortField,
 } from '../../../core/models/catalog.models';
 import { getApiErrorMessage } from '../../../core/utils/api-error';
+import { ActionIconComponent } from '../shared/action-icon.component';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -16,27 +16,36 @@ function emptyImageDraft(): ProductImageDraft {
   return { productId: null, url: '', sortOrder: 0 };
 }
 
+interface ImageGroup {
+  productId: number;
+  productName: string;
+  images: ProductImage[];
+}
+
 @Component({
   selector: 'app-product-images',
-  imports: [FormsModule],
+  imports: [FormsModule, ActionIconComponent],
   templateUrl: './product-images.component.html',
   styleUrl: './product-images.component.scss',
 })
-export class ProductImagesComponent implements OnInit {
+export class ProductImagesComponent implements OnInit, OnDestroy {
   private readonly changeDetector = inject(ChangeDetectorRef);
+  private viewerSubscription?: Subscription;
+  private listSubscription?: Subscription;
+  private readonly expandedProducts = new Set<number>();
 
   readonly pageSizeOptions = [5, 10, 25, 50];
   readonly api = inject(CatalogApiService);
 
   images: ProductImage[] = [];
   products: Product[] = [];
-  totalCount = 0;
   pageNumber = 1;
   pageSize = 10;
   searchTerm = '';
+  private appliedSearchTerm = '';
   productFilter: number | null = null;
-  sortBy: ProductImageSortField = 'product';
-  sortDirection: 'asc' | 'desc' = 'asc';
+  reordering = false;
+  draggingId: number | null = null;
   selectedFile: File | null = null;
   previewUrl = '';
   draft = emptyImageDraft();
@@ -53,24 +62,35 @@ export class ProductImagesComponent implements OnInit {
   viewerImages: ProductImage[] = [];
   viewerIndex = 0;
   viewerLoading = false;
+  viewerError = '';
+  viewerProductName = '';
+  viewerFailedImages = new Set<number>();
 
   get viewerCurrent(): ProductImage | null {
     return this.viewerImages[this.viewerIndex] ?? null;
   }
 
-  get viewerProductName(): string {
-    return [...this.products, ...this.filterProducts].find((p) => p.id === this.viewerProductId)?.name ?? '';
-  }
-
-  changeViewerProduct(productId: number | null): void {
-    this.viewerProductId = productId;
-    this.loadViewer();
-  }
-
   previewInViewer(image: ProductImage): void {
     this.viewerProductId = image.productId;
-    this.loadViewer(image.id);
-    document.querySelector('.viewer-card')?.scrollIntoView({ behavior: 'smooth' });
+    this.viewerProductName = image.productName;
+    this.loadViewer(image.id, this.activeTab === 'active');
+  }
+
+  closeViewer(): void {
+    this.viewerSubscription?.unsubscribe();
+    this.viewerProductId = null;
+    this.viewerImages = [];
+    this.viewerLoading = false;
+    this.viewerError = '';
+  }
+
+  ngOnDestroy(): void {
+    this.viewerSubscription?.unsubscribe();
+    this.listSubscription?.unsubscribe();
+  }
+
+  imageFailed(id: number): void {
+    this.viewerFailedImages.add(id);
   }
 
   selectViewerImage(index: number): void {
@@ -84,34 +104,43 @@ export class ProductImagesComponent implements OnInit {
     }
   }
 
-  // Mirrors the storefront: ordered by sort order, the first image is the main one
-  loadViewer(selectImageId?: number): void {
+  private loadViewer(selectImageId: number, isActive: boolean): void {
+    this.viewerSubscription?.unsubscribe();
     if (this.viewerProductId === null) {
-      this.viewerImages = [];
-      this.viewerIndex = 0;
       return;
     }
+    const productId = this.viewerProductId;
+    this.viewerImages = [];
+    this.viewerIndex = 0;
+    this.viewerError = '';
+    this.viewerFailedImages.clear();
     this.viewerLoading = true;
-    this.api
-      .getProductImages({
-        pageNumber: 1,
+    const fetchPage = (pageNumber: number) =>
+      this.api.getProductImages({
+        pageNumber,
         pageSize: 100,
         searchTerm: '',
-        productId: this.viewerProductId,
+        productId,
         sortBy: 'sortOrder',
         sortDirection: 'asc',
-        isActive: this.activeTab === 'active',
-      })
+        isActive,
+      });
+    this.viewerSubscription = fetchPage(1)
+      .pipe(
+        expand((page) => page.items.length && page.pageNumber * page.pageSize < page.totalCount
+          ? fetchPage(page.pageNumber + 1) : EMPTY),
+        reduce((images, page) => [...images, ...page.items], [] as ProductImage[]),
+      )
       .subscribe({
-        next: (page) => {
-          this.viewerImages = page.items;
-          const index = page.items.findIndex((i) => i.id === selectImageId);
+        next: (images) => {
+          this.viewerImages = images;
+          const index = images.findIndex((image) => image.id === selectImageId);
           this.viewerIndex = index >= 0 ? index : 0;
           this.viewerLoading = false;
           this.changeDetector.markForCheck();
         },
         error: (error: unknown) => {
-          this.errorMessage = getApiErrorMessage(error);
+          this.viewerError = getApiErrorMessage(error);
           this.viewerLoading = false;
           this.changeDetector.markForCheck();
         },
@@ -124,10 +153,6 @@ export class ProductImagesComponent implements OnInit {
       next: (page) => {
         this.products = page.items;
         this.filterProducts = page.items;
-        if (this.viewerProductId === null && page.items.length) {
-          this.viewerProductId = page.items[0].id;
-          this.loadViewer();
-        }
         this.changeDetector.markForCheck();
       },
       error: (error: unknown) => {
@@ -138,7 +163,40 @@ export class ProductImagesComponent implements OnInit {
   }
 
   get pageCount(): number {
-    return Math.max(1, Math.ceil(this.totalCount / this.pageSize));
+    return Math.max(1, Math.ceil(this.imageGroups.length / this.pageSize));
+  }
+
+  get totalCount(): number {
+    return this.imageGroups.reduce((count, group) => count + group.images.length, 0);
+  }
+
+  get imageGroups(): ImageGroup[] {
+    const groups = new Map<number, ImageGroup>();
+    for (const image of this.images) {
+      if (this.productFilter !== null && image.productId !== this.productFilter) continue;
+      const group = groups.get(image.productId) ?? { productId: image.productId, productName: image.productName, images: [] };
+      group.images.push(image);
+      groups.set(image.productId, group);
+    }
+    const term = this.appliedSearchTerm.trim().toLowerCase();
+    return [...groups.values()]
+      .filter(group => !term || group.productName.toLowerCase().includes(term) ||
+        group.images.some(image => image.url.toLowerCase().includes(term)))
+      .map(group => ({ ...group, images: group.images.sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id) }))
+      .sort((a, b) => a.productName.localeCompare(b.productName) || a.productId - b.productId);
+  }
+
+  get visibleGroups(): ImageGroup[] {
+    return this.imageGroups.slice((this.pageNumber - 1) * this.pageSize, this.pageNumber * this.pageSize);
+  }
+
+  isExpanded(productId: number): boolean {
+    return this.expandedProducts.has(productId);
+  }
+
+  toggleGroup(productId: number): void {
+    if (this.expandedProducts.has(productId)) this.expandedProducts.delete(productId);
+    else this.expandedProducts.add(productId);
   }
 
   tabCounts = { active: 0, inactive: 0 };
@@ -149,10 +207,10 @@ export class ProductImagesComponent implements OnInit {
         .getProductImages({
           pageNumber: 1,
           pageSize: 1,
-          searchTerm: this.searchTerm,
+          searchTerm: this.appliedSearchTerm,
           productId: this.productFilter,
-          sortBy: this.sortBy,
-          sortDirection: this.sortDirection,
+          sortBy: 'product',
+          sortDirection: 'asc',
           isActive,
         })
         .subscribe({
@@ -165,28 +223,29 @@ export class ProductImagesComponent implements OnInit {
   }
 
   loadImages(): void {
+    this.listSubscription?.unsubscribe();
     this.loading = true;
     this.errorMessage = '';
     this.loadTabCounts();
-    this.api
-      .getProductImages({
-        pageNumber: this.pageNumber,
-        pageSize: this.pageSize,
-        searchTerm: this.searchTerm,
-        productId: this.productFilter,
-        sortBy: this.sortBy,
-        sortDirection: this.sortDirection,
+    const fetchPage = (pageNumber: number) => this.api.getProductImages({
+        pageNumber,
+        pageSize: 100,
+        searchTerm: '',
+        productId: null,
+        sortBy: 'product',
+        sortDirection: 'asc',
         isActive: this.activeTab === 'active',
-      })
+      });
+    this.listSubscription = fetchPage(1).pipe(
+      expand(page => page.items.length && page.pageNumber * page.pageSize < page.totalCount
+        ? fetchPage(page.pageNumber + 1) : EMPTY),
+      reduce((items, page) => [...items, ...page.items], [] as ProductImage[]),
+    )
       .subscribe({
-        next: (page) => {
-          this.images = page.items;
-          this.totalCount = page.totalCount;
+        next: (items) => {
+          this.images = items;
           this.loading = false;
-          if (!page.items.length && this.pageNumber > this.pageCount) {
-            this.changePage(this.pageCount);
-            return;
-          }
+          this.pageNumber = Math.min(this.pageNumber, this.pageCount);
           this.changeDetector.markForCheck();
         },
         error: (error: unknown) => {
@@ -217,6 +276,7 @@ export class ProductImagesComponent implements OnInit {
   }
 
   search(): void {
+    this.appliedSearchTerm = this.searchTerm;
     this.pageNumber = 1;
     this.loadImages();
   }
@@ -228,38 +288,73 @@ export class ProductImagesComponent implements OnInit {
 
   changePage(page: number): void {
     this.pageNumber = Math.min(Math.max(1, page), this.pageCount);
-    this.loadImages();
   }
 
   changePageSize(size: number): void {
     this.pageSize = Number(size);
     this.pageNumber = 1;
-    this.loadImages();
   }
 
-  sort(field: ProductImageSortField): void {
-    if (this.sortBy === field) {
-      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-    } else {
-      this.sortBy = field;
-      this.sortDirection = 'asc';
-    }
-    this.pageNumber = 1;
-    this.loadImages();
+  canReorder(group: ImageGroup): boolean {
+    return !this.loading && !this.saving && !this.reordering && this.editingId === null &&
+      !this.imageToDelete && !this.searchTerm.trim() && !this.appliedSearchTerm.trim() && group.images.length > 1;
   }
 
-  sortIndicator(field: ProductImageSortField): string {
-    if (this.sortBy !== field) {
-      return '';
-    }
-    return this.sortDirection === 'asc' ? '▲' : '▼';
+  canMove(group: ImageGroup, index: number, step: number): boolean {
+    return this.canReorder(group) && index + step >= 0 && index + step < group.images.length;
   }
 
-  ariaSort(field: ProductImageSortField): 'ascending' | 'descending' | 'none' {
-    if (this.sortBy !== field) {
-      return 'none';
+  moveImage(group: ImageGroup, index: number, step: number): void {
+    if (this.canMove(group, index, step)) this.reorder(group, index, index + step);
+  }
+
+  dragStart(event: DragEvent, group: ImageGroup, image: ProductImage): void {
+    if (!this.canReorder(group) || !event.dataTransfer) {
+      event.preventDefault();
+      return;
     }
-    return this.sortDirection === 'asc' ? 'ascending' : 'descending';
+    this.draggingId = image.id;
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(image.id));
+  }
+
+  dragOver(event: DragEvent, group: ImageGroup, target: ProductImage): void {
+    if (this.canReorder(group) && this.draggingId !== target.id && group.images.some(image => image.id === this.draggingId)) {
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    }
+  }
+
+  drop(event: DragEvent, group: ImageGroup, target: ProductImage): void {
+    const index = group.images.findIndex(image => image.id === this.draggingId);
+    this.draggingId = null;
+    if (index < 0 || !this.canReorder(group)) return;
+    const targetIndex = group.images.findIndex(image => image.id === target.id);
+    if (targetIndex < 0 || index === targetIndex) return;
+    event.preventDefault();
+    this.reorder(group, index, targetIndex);
+  }
+
+  private reorder(group: ImageGroup, source: number, target: number): void {
+    const ordered = [...group.images];
+    ordered.splice(target, 0, ordered.splice(source, 1)[0]);
+    this.reordering = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.api.reorderProductImages(group.productId, ordered.map(({ id, sortOrder }) => ({ id, sortOrder }))).subscribe({
+      next: () => {
+        const order = new Map(ordered.map((image, index) => [image.id, index]));
+        this.images = this.images.map(image => order.has(image.id) ? { ...image, sortOrder: order.get(image.id)! } : image);
+        this.reordering = false;
+        this.successMessage = 'Image order saved.';
+        this.changeDetector.markForCheck();
+      },
+      error: (error: unknown) => {
+        this.reordering = false;
+        this.errorMessage = `Could not save image order: ${getApiErrorMessage(error)} Refresh the list and try again.`;
+        this.changeDetector.markForCheck();
+      },
+    });
   }
 
   onFileSelected(event: Event): void {
@@ -350,8 +445,6 @@ export class ProductImagesComponent implements OnInit {
         this.reset();
         this.saving = false;
         this.loadImages();
-        this.viewerProductId = payload.productId;
-        this.loadViewer();
         this.changeDetector.markForCheck();
       },
       error: (error: unknown) => this.fail(error),
@@ -388,7 +481,6 @@ export class ProductImagesComponent implements OnInit {
           this.reset();
         }
         this.loadImages();
-        this.loadViewer();
         this.changeDetector.markForCheck();
       },
       error: (error: unknown) => {

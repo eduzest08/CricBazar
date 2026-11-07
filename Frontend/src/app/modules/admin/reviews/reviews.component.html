@@ -136,8 +136,8 @@
               <td class="comment-cell">{{ review.comment || '—' }}</td>
               <td>{{ review.createdAt | date: 'mediumDate' }}</td>
               <td class="actions">
-                <button class="text-button" type="button" (click)="edit(review)">Edit</button>
-                <button class="text-button danger-text" type="button" (click)="delete(review)">Delete</button>
+                <button class="icon-button" type="button" title="Edit" [attr.aria-label]="'Edit review ' + review.id + ' for ' + review.productName" (click)="edit(review)"><app-action-icon name="edit" /></button>
+                <button class="icon-button danger-text" type="button" title="Delete" [attr.aria-label]="'Delete review ' + review.id + ' for ' + review.productName" (click)="delete(review)"><app-action-icon name="delete" /></button>
               </td>
             </tr>
           }

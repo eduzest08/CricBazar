@@ -4,6 +4,7 @@ using Xunit;
 using CricketBazar.Application.Commands.Products;
 using CricketBazar.Application.DTOs;
 using CricketBazar.Application.Queries.Products;
+using CricketBazar.Application.Mappings;
 using CricketBazar.Domain.Entities;
 using CricketBazar.Domain.Interfaces;
 
@@ -93,7 +94,7 @@ public class ProductHandlerTests
     [Fact]
     public async Task Create_SetsCreatedAt_PersistsAndReturnsDto()
     {
-        var createDto = new CreateProductDto { Name = "Bat", Slug = "bat", Sku = "SKU-1" };
+        var createDto = new CreateProductDto { Name = "Bat", Slug = "bat", Sku = "SKU-1", CreatedByUserId = " admin " };
         var product = NewProduct(0);
         _mapper.Setup(m => m.Map<Product>(createDto)).Returns(product);
         _repo.Setup(r => r.AddAsync(product)).ReturnsAsync(1);
@@ -105,7 +106,28 @@ public class ProductHandlerTests
 
         Assert.NotNull(result);
         Assert.True(product.CreatedAt >= before);
+        Assert.Equal(product.CreatedAt, product.UpdatedAt);
+        Assert.Equal("admin", product.CreatedByUserId);
         _repo.Verify(r => r.AddAsync(product), Times.Once);
+    }
+
+    [Fact]
+    public void ProductMapping_ExposesCreatorAndUtcTimestamps()
+    {
+        var mapper = new MapperConfiguration(config => config.AddProfile<MappingProfile>()).CreateMapper();
+        var product = NewProduct();
+        product.CreatedBy = 42;
+        product.CreatedByUserId = "admin";
+        product.CreatedAt = new DateTime(2026, 1, 2, 3, 4, 5);
+        product.UpdatedAt = new DateTime(2026, 2, 3, 4, 5, 6);
+
+        var dto = mapper.Map<ProductDto>(product);
+
+        Assert.Equal("admin", dto.CreatedBy);
+        Assert.Equal(DateTimeKind.Utc, dto.CreatedAt.Kind);
+        Assert.Equal(DateTimeKind.Utc, dto.UpdatedAt.Kind);
+        product.CreatedByUserId = null;
+        Assert.Equal("42", mapper.Map<ProductDto>(product).CreatedBy);
     }
 
     [Fact]

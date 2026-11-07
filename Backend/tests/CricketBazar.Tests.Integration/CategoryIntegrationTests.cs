@@ -43,6 +43,36 @@ public class CategoryIntegrationTests : IAsyncLifetime
         return categoryId;
     }
 
+    [Fact]
+    public async Task ReorderCategories_PersistsAndRejectsStaleOrDuplicateRequests()
+    {
+        var suffix = Guid.NewGuid().ToString("N");
+        var parent = await CreateAndTrackCategoryAsync("Reorder parent", $"reorder-parent-{suffix}");
+        var first = await CreateAndTrackCategoryAsync("First", $"reorder-first-{suffix}", parent, 10);
+        var second = await CreateAndTrackCategoryAsync("Second", $"reorder-second-{suffix}", parent, 20);
+        var request = new { parentId = parent, categories = new[] {
+            new { id = second, sortOrder = 20 }, new { id = first, sortOrder = 10 }
+        } };
+
+        var response = await _fixture.Client!.PutAsJsonAsync("/api/v1/categories/order", request);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        var firstResponse = await _fixture.GetCategoryByIdAsync(first);
+        var secondResponse = await _fixture.GetCategoryByIdAsync(second);
+        using var firstJson = JsonDocument.Parse(await firstResponse.Content.ReadAsStringAsync());
+        using var secondJson = JsonDocument.Parse(await secondResponse.Content.ReadAsStringAsync());
+        Assert.Equal(1, firstJson.RootElement.GetProperty("sortOrder").GetInt32());
+        Assert.Equal(0, secondJson.RootElement.GetProperty("sortOrder").GetInt32());
+
+        var stale = await _fixture.Client.PutAsJsonAsync("/api/v1/categories/order", request);
+        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+        var duplicate = await _fixture.Client.PutAsJsonAsync("/api/v1/categories/order", new {
+            parentId = parent, categories = new[] { new { id = first, sortOrder = 1 }, new { id = first, sortOrder = 1 } }
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, duplicate.StatusCode);
+        using var after = JsonDocument.Parse(await (await _fixture.GetCategoryByIdAsync(first)).Content.ReadAsStringAsync());
+        Assert.Equal(1, after.RootElement.GetProperty("sortOrder").GetInt32());
+    }
+
     #region Create Category Tests
 
     [Fact]

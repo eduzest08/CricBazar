@@ -16,7 +16,7 @@
 }
 
 .eyebrow {
-  color: #718349;
+  color: var(--theme-link, #718349);
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.13em;
@@ -36,7 +36,7 @@
 .stat-card {
   display: grid;
   gap: 8px;
-  border: 1px solid #e6ebe7;
+  border: 1px solid var(--theme-border, #e6ebe7);
   border-radius: 12px;
   padding: 22px 24px;
   background: #fff;
@@ -45,7 +45,7 @@
   text-decoration: none;
 
   &:hover {
-    border-color: #c9ef77;
+    border-color: var(--theme-accent, #c9ef77);
   }
 
   span {

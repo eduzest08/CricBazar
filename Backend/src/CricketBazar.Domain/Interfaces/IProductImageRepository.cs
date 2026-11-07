@@ -18,6 +18,7 @@ public interface IProductImageRepository
     Task<int> AddAsync(ProductImage entity);
     Task<bool> UpdateAsync(ProductImage entity);
     Task<bool> DeleteAsync(int id);
+    Task<bool> ReorderAsync(int productId, IReadOnlyList<(int Id, int SortOrder)> images, CancellationToken cancellationToken);
     Task<(IEnumerable<ProductImageListItem> items, int totalCount)> SearchAsync(
         string? searchTerm, int? productId, string? sortBy, bool descending, int pageNumber, int pageSize, bool isActive = true);
 }

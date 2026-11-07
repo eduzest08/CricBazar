@@ -1,0 +1,96 @@
+<app-storefront-header [(searchValue)]="searchInput" (searchSubmit)="search()" />
+
+<main class="store-main">
+  <nav class="breadcrumb" aria-label="Breadcrumb"><a routerLink="/">Home</a><span>/</span>@if (isCategoryPage) { <a routerLink="/customer">Cricket</a><span>/</span><strong>{{ categoryPage?.name || 'Category' }}</strong> } @else { <strong>Cricket</strong> }</nav>
+  <div class="page-title"><div><p>THE CRICKET COLLECTION</p><h1>{{ isCategoryPage ? (categoryPage?.name || 'Category') : 'Cricket gear' }}</h1></div><span>Made for every innings.</span></div>
+  @if (loading) {
+    <p class="notice" role="status">Loading products...</p>
+  } @else if (error) {
+    <div class="notice error" role="alert">{{ error }} <button type="button" (click)="loadCatalog()">Try again</button></div>
+  } @else if (isCategoryPage && !categoryPage) {
+    <div class="notice" role="alert"><strong>Category not found</strong><p>This category is unavailable.</p><a routerLink="/customer">Browse all cricket gear</a></div>
+  } @else {
+    <div class="mobile-filter"><button type="button" (click)="filterOpen = !filterOpen" [attr.aria-expanded]="filterOpen" aria-controls="catalog-filters">☰ Filters</button><span>{{ firstItem }}–{{ lastItem }} of {{ filteredProducts.length }} items</span></div>
+    <div class="catalog-layout">
+      <aside class="filters" id="catalog-filters" [class.open]="filterOpen" aria-label="Product filters">
+        <div class="filters-title"><h2>Filter by</h2></div>
+        <div class="shopping-heading"><h3>Shopping options</h3>@if (isCategoryPage || selectedCategoryIds.size || brandId !== null || searchTerm) { <button type="button" (click)="clearFilters()">Clear all</button> }</div>
+        @if (!isCategoryPage) {
+        @if (brandId !== null) { <p class="active-filter">Brand: {{ selectedBrandName }}</p> }
+        <fieldset class="main-categories"><legend>Category</legend>
+          @for (option of categoryOptions; track option.category.id) {
+            <label class="category-option"><input type="radio" name="mainCategory" [checked]="selectedCategoryIds.has(option.category.id)" (change)="openCategory(option.category.id)" /><span class="category-name">{{ option.category.name }}</span><span class="category-count" [attr.aria-label]="option.count + (option.count === 1 ? ' product' : ' products')" title="Active products including subcategories">{{ option.count }}</span></label>
+          }
+        </fieldset>
+        } @else {
+        @if (subcategoryOptions.length) {
+          <fieldset><legend>Subcategory</legend>
+            @for (option of subcategoryOptions; track option.category.id) {
+              <label class="subcategory-option" [style.padding-left.px]="option.depth * 12"><input #subcategoryCheckbox type="checkbox" [checked]="selectedSubcategoryIds.has(option.category.id)" (change)="setSubcategorySelected(option.category.id, subcategoryCheckbox.checked)" /><span class="category-name">{{ option.category.name }}</span><span class="category-count" [attr.aria-label]="option.count + (option.count === 1 ? ' product' : ' products')" title="Active products including subcategories">{{ option.count }}</span></label>
+            }
+          </fieldset>
+        }
+        <fieldset><legend>Brand</legend>
+          @for (brand of availableBrands; track brand.id) {
+            <label><input #brandCheckbox type="checkbox" [checked]="selectedBrandIds.has(brand.id)" (change)="setBrandSelected(brand.id, brandCheckbox.checked)" /> {{ brand.name }}</label>
+          } @empty {
+            <p class="no-brands">No brands with active products in this category.</p>
+          }
+          @if (hasUnavailableBrandSelection) { <p class="no-brands">A selected brand has no active products in this category. Use Clear all to remove it.</p> }
+        </fieldset>
+        <fieldset><legend>Price</legend>
+          <div class="price-fields">
+            <label>Min (₹)<input type="number" min="0" [(ngModel)]="minPrice" (ngModelChange)="filterChanged()" aria-label="Minimum price" /></label>
+            <label>Max (₹)<input type="number" min="0" [(ngModel)]="maxPrice" (ngModelChange)="filterChanged()" aria-label="Maximum price" /></label>
+          </div>
+          @if (priceInvalid) { <p class="price-error" role="alert">Enter non-negative prices with minimum no greater than maximum.</p> }
+        </fieldset>
+        }
+      </aside>
+      <section class="results" aria-label="Cricket products">
+        <div class="toolbar">
+          <div class="view-controls" aria-label="Display mode">
+            <button type="button" [class.selected]="view === 'grid'" [attr.aria-pressed]="view === 'grid'" (click)="view = 'grid'" aria-label="Grid view">▦</button>
+            <button type="button" [class.selected]="view === 'list'" [attr.aria-pressed]="view === 'list'" (click)="view = 'list'" aria-label="List view">☰</button>
+          </div>
+          <span class="desktop-count">{{ firstItem }}–{{ lastItem }} of {{ filteredProducts.length }} items</span>
+          <label class="sort">Sort by <select [(ngModel)]="sortBy" (ngModelChange)="filterChanged()"><option value="newest">Newest</option><option value="name_asc">Name: A to Z</option><option value="price_asc">Price: Low to high</option><option value="price_desc">Price: High to low</option><option value="rating">Top rated</option></select></label>
+        </div>
+        @if (imageError) { <div class="notice error" role="alert">{{ imageError }} <button type="button" (click)="loadCatalog()">Refresh</button></div> }
+        @if (priceInvalid) {
+          <p class="empty">Please correct the price range to see products.</p>
+        } @else if (!visibleProducts.length) {
+          <div class="empty"><strong>No products found</strong><p>Try a different search or clear your filters.</p><button type="button" (click)="clearFilters()">Clear filters</button></div>
+        } @else {
+          <div class="product-grid" [class.list-view]="view === 'list'">
+            @for (product of visibleProducts; track product.id) {
+              <article class="product-card">
+                <a class="product-image" [routerLink]="['/customer/product', product.id]" [attr.aria-label]="'View details for ' + product.name">
+                  @if (images.get(product.id) && !failedImages.has(product.id)) {
+                    <img [src]="images.get(product.id)" [alt]="product.name" (error)="imageFailed(product.id)" />
+                  } @else {
+                    <span>{{ imageLoading ? 'Loading image...' : 'Image unavailable' }}</span>
+                  }
+                  @if (discount(product)) { <span class="discount">{{ discount(product) }}% OFF</span> }
+                </a>
+                <div class="product-info">
+                  <h2><a [routerLink]="['/customer/product', product.id]">{{ product.name }}</a></h2>
+                  @if (product.shortDesc) { <p class="description">{{ product.shortDesc }}</p> }
+                  <div class="price"><strong>{{ product.salePrice | currency:'INR':'symbol':'1.0-2' }}</strong>@if (discount(product)) { <del>{{ product.mrp | currency:'INR':'symbol':'1.0-2' }}</del> }</div>
+                  @if (product.reviewCount > 0) { <div class="rating">★ {{ product.avgRating | number:'1.1-1' }} <span>({{ product.reviewCount }} reviews)</span></div> }
+                  <span class="availability">{{ product.stock > 0 ? 'In stock' : 'Out of stock' }}</span>
+                  <a class="product-link" [routerLink]="['/customer/product', product.id]">View details →</a>
+                </div>
+              </article>
+            }
+          </div>
+          <div class="pagination">
+            <div><button type="button" (click)="changePage(page - 1)" [disabled]="page === 1">Previous</button><span>Page {{ page }} of {{ pageCount }}</span><button type="button" (click)="changePage(page + 1)" [disabled]="page === pageCount">Next</button></div>
+            <label>Per page <select [(ngModel)]="pageSize" (ngModelChange)="filterChanged()"><option [ngValue]="20">20</option><option [ngValue]="40">40</option><option [ngValue]="60">60</option></select></label>
+          </div>
+        }
+      </section>
+    </div>
+  }
+</main>
+<app-storefront-footer />

@@ -2,6 +2,7 @@ using Dapper;
 using CricketBazar.Infrastructure.Data;
 using CricketBazar.Domain.Entities;
 using CricketBazar.Domain.Interfaces;
+using System.Data;
 
 namespace CricketBazar.Infrastructure.Repositories;
 
@@ -65,6 +66,29 @@ public class DapperCategoryRepository : DapperRepository<Category>, ICategoryRep
         {
             return await connection.QueryAsync<Category>(sql);
         }
+    }
+
+    public async Task<bool> ReorderAsync(int? parentId, IReadOnlyList<(int Id, int SortOrder)> categories, CancellationToken cancellationToken)
+    {
+        await using var connection = _connectionFactory.GetConnection();
+        await connection.OpenAsync(cancellationToken);
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        const string selectSql = @"SELECT Id, SortOrder FROM dbo.Categories WITH (UPDLOCK, HOLDLOCK)
+            WHERE IsActive = 1 AND (ParentId = @ParentId OR (ParentId IS NULL AND @ParentId IS NULL))";
+        var current = (await connection.QueryAsync<(int Id, int SortOrder)>(
+            new CommandDefinition(selectSql, new { ParentId = parentId }, transaction, cancellationToken: cancellationToken))).ToArray();
+        var expected = categories.ToDictionary(x => x.Id, x => x.SortOrder);
+        if (current.Length != expected.Count || current.Any(x => !expected.TryGetValue(x.Id, out var order) || order != x.SortOrder))
+            return false;
+
+        const string updateSql = "UPDATE dbo.Categories SET SortOrder = @SortOrder WHERE Id = @Id";
+        for (var index = 0; index < categories.Count; index++)
+        {
+            await connection.ExecuteAsync(new CommandDefinition(updateSql,
+                new { categories[index].Id, SortOrder = index }, transaction, cancellationToken: cancellationToken));
+        }
+        transaction.Commit();
+        return true;
     }
 
     /// <summary>

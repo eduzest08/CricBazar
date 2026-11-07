@@ -7,6 +7,24 @@
 @brandId = 1
 @cartId = 1
 
+### Reorder active siblings (use actual IDs and current sort orders)
+PUT {{baseUrl}}/categories/order
+Content-Type: application/json
+
+{
+  "parentId": 1,
+  "categories": [{ "id": 3, "sortOrder": 1 }, { "id": 2, "sortOrder": 0 }]
+}
+
+### Reorder all images of one product (use actual IDs and current sort orders)
+PUT {{baseUrl}}/product-images/order
+Content-Type: application/json
+
+{
+  "productId": 1,
+  "images": [{ "id": 2, "sortOrder": 1 }, { "id": 1, "sortOrder": 0 }]
+}
+
 ### Health Check
 GET {{baseUrl}}/../health
 
@@ -70,6 +88,12 @@ Content-Type: application/json
 
 ### Delete Product
 DELETE {{baseUrl}}/products/{{productId}}
+
+### Permanently delete an inactive product and related catalog/cart/wishlist records (irreversible; blocked by order history)
+DELETE {{baseUrl}}/products/{{productId}}/permanent
+
+### Permanently delete a nonexistent product (404)
+DELETE {{baseUrl}}/products/2147483647/permanent
 
 ### Add Product Image
 POST {{baseUrl}}/products/{{productId}}/images

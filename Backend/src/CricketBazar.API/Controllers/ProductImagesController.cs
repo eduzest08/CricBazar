@@ -4,6 +4,19 @@ using Microsoft.AspNetCore.Mvc;
 using CricketBazar.Application.DTOs;
 using CricketBazar.Domain.Entities;
 using CricketBazar.Domain.Interfaces;
+using System.ComponentModel.DataAnnotations;
+
+/// <summary>One image and its previously observed sort order.</summary>
+public sealed record ProductImageOrderItem(int Id, int SortOrder);
+
+/// <summary>The complete requested image order for one product.</summary>
+public sealed record ReorderProductImagesRequest
+{
+    [Range(1, int.MaxValue)]
+    public int ProductId { get; init; }
+    [Required, MinLength(2)]
+    public required List<ProductImageOrderItem> Images { get; init; }
+}
 
 [ApiController]
 [Route("api/v1/product-images")]
@@ -30,6 +43,23 @@ public class ProductImagesController : ControllerBase
         _productRepository = productRepository;
         _environment = environment;
         _logger = logger;
+    }
+
+    /// <summary>Reorder all images of one product, using current sort orders to detect changes.</summary>
+    [HttpPut("order")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Reorder([FromBody] ReorderProductImagesRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Images.Any(item => item is null || item.Id <= 0) ||
+            request.Images.Select(item => item.Id).Distinct().Count() != request.Images.Count)
+            return BadRequest(new ProblemDetails { Title = "Invalid image order", Status = StatusCodes.Status400BadRequest });
+        var updated = await _repository.ReorderAsync(request.ProductId,
+            request.Images.Select(item => (item.Id, item.SortOrder)).ToArray(), cancellationToken);
+        return updated
+            ? NoContent()
+            : Conflict(new ProblemDetails { Title = "Image order changed. Refresh and try again.", Status = StatusCodes.Status409Conflict });
     }
 
     /// <summary>

@@ -1,8 +1,8 @@
-<div class="admin-shell" [class.collapsed]="sidebarCollapsed">
+<div class="admin-shell" [class.collapsed]="sidebarCollapsed" [attr.data-theme]="theme">
   <aside class="sidebar">
     <a class="brand-mark" routerLink="/admin/dashboard" aria-label="CricBazar admin home">
-      <span class="brand-icon">CB</span>
-      <span class="label">CricBazar <small>ADMIN CONSOLE</small></span>
+      <span class="brand-icon" aria-hidden="true">CB</span>
+      <span class="label brand-copy">Cric<span>Bazar</span><small>ADMIN WORKSPACE</small></span>
     </a>
     <button
       class="sidebar-toggle"
@@ -11,29 +11,31 @@
       [attr.aria-expanded]="!sidebarCollapsed"
       (click)="sidebarCollapsed = !sidebarCollapsed"
     >
-      {{ sidebarCollapsed ? '»' : '«' }}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16M15 9l-3 3 3 3"/></svg>
     </button>
 
     <nav aria-label="Admin navigation">
-      <a routerLink="/admin/dashboard" routerLinkActive="active">
-        <span class="nav-icon">⌂</span> <span class="label">Dashboard</span>
+      <a routerLink="/admin/dashboard" routerLinkActive="active" aria-label="Dashboard" title="Dashboard">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span class="label">Dashboard</span>
       </a>
     </nav>
 
-    <div class="nav-label label">CATALOG</div>
+    <div class="nav-label label">WORKSPACE <span></span></div>
     <nav aria-label="Catalog navigation">
       <div class="nav-folder">
-        <button class="folder-toggle" type="button" [attr.aria-expanded]="productsOpen" (click)="toggleProducts()">
-          <span class="nav-icon">{{ productsOpen ? '📂' : '📁' }}</span>
-          <span class="label">PRODUCTS</span>
+        <button class="folder-toggle" type="button" aria-label="Products menu" title="Products menu" [attr.aria-expanded]="productsOpen && !sidebarCollapsed" (click)="toggleProducts()">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></svg>
+          <span class="label">Products</span>
+          <svg class="nav-chevron label" [class.open]="productsOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
         </button>
         @if (productsOpen && !sidebarCollapsed) {
           <div class="folder-children">
             <a routerLink="/admin/brands" routerLinkActive="active">
-              <span class="nav-icon">◇</span> Brands
+              <span class="nav-bullet" aria-hidden="true"></span> Brands
             </a>
             <a routerLink="/admin/categories" routerLinkActive="active">
-              <span class="nav-icon">▤</span> Categories
+              <span class="nav-bullet" aria-hidden="true"></span> Categories
             </a>
             <div class="nav-subfolder">
               <div class="nav-subfolder-heading">
@@ -43,35 +45,32 @@
                   [attr.aria-expanded]="productChildrenOpen"
                   (click)="productChildrenOpen = !productChildrenOpen"
                 >
-                  <span class="nav-icon">{{ productChildrenOpen ? '📂' : '📁' }}</span>
-                  <span class="label">Product Details</span>
-                </button>
-                <button
-                  class="subfolder-toggle"
-                  type="button"
-                  aria-label="Toggle Product Details submenu"
-                  [attr.aria-expanded]="productChildrenOpen"
-                  (click)="productChildrenOpen = !productChildrenOpen"
-                >
-                  {{ productChildrenOpen ? '⌄' : '›' }}
+                  <span class="nav-bullet" aria-hidden="true"></span>
+                  <span>Product Details</span>
+                  <svg class="nav-expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                    <path d="M5 12h14"/>
+                    @if (!productChildrenOpen) {
+                      <path class="plus-vertical" d="M12 5v14"/>
+                    }
+                  </svg>
                 </button>
               </div>
               @if (productChildrenOpen) {
                 <div class="subfolder-children">
                   <a routerLink="/admin/products" routerLinkActive="active">
-                    <span class="nav-icon">▦</span> Products
+                    <span class="nav-bullet" aria-hidden="true"></span> Products
                   </a>
                   <a routerLink="/admin/product-attributes" routerLinkActive="active">
-                    <span class="nav-icon">◇</span> Product Attributes
+                    <span class="nav-bullet" aria-hidden="true"></span> Product Attributes
                   </a>
                   <a routerLink="/admin/product-variants" routerLinkActive="active">
-                    <span class="nav-icon">▦</span> Product Variants
+                    <span class="nav-bullet" aria-hidden="true"></span> Product Variants
                   </a>
                   <a routerLink="/admin/product-images" routerLinkActive="active">
-                    <span class="nav-icon">▧</span> Product Image
+                    <span class="nav-bullet" aria-hidden="true"></span> Product Image
                   </a>
                   <a routerLink="/admin/reviews" routerLinkActive="active">
-                    <span class="nav-icon">☆</span> Reviews
+                    <span class="nav-bullet" aria-hidden="true"></span> Reviews
                   </a>
                 </div>
               }
@@ -82,9 +81,11 @@
     </nav>
 
     <div class="sidebar-footer">
-      <span class="status-dot"></span>
-      <span class="label">Admin mode <small>Signed in as admin</small></span>
-      <button class="logout-button label" type="button" (click)="logout()">Sign out</button>
+      <span class="user-avatar" aria-hidden="true">A<span class="status-dot"></span></span>
+      <span class="label user-copy">Administrator <small>Admin workspace</small></span>
+      <button class="logout-button" type="button" aria-label="Sign out" title="Sign out" (click)="logout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M8 12h10"/></svg>
+      </button>
     </div>
   </aside>
 
@@ -94,8 +95,23 @@
         <span class="eyebrow">CRICBAZAR / ADMIN</span>
         <strong>Catalog management</strong>
       </div>
-      <a class="customer-link" routerLink="/customer">Customer storefront <span>↗</span></a>
+      <div class="topbar-actions">
+        <div class="theme-picker" role="group" aria-label="Display color">
+          <span>Display</span>
+          @for (option of themes; track option.id) {
+            <button type="button" class="theme-swatch" [class.selected]="theme === option.id" [attr.data-color]="option.id"
+              [attr.aria-label]="option.name + ' display color'" [attr.aria-pressed]="theme === option.id"
+              [title]="option.name" (click)="selectTheme(option.id)">
+              @if (theme === option.id) { <span aria-hidden="true">✓</span> }
+            </button>
+          }
+        </div>
+        <a class="customer-link" routerLink="/customer">Customer storefront <span>↗</span></a>
+      </div>
     </header>
+    @if (themeStorageError) {
+      <div class="theme-message" role="status">{{ themeStorageError }}</div>
+    }
     <section class="page-content">
       <router-outlet />
     </section>

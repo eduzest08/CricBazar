@@ -4,7 +4,7 @@
     <h1>Categories</h1>
     <p>Organize products into a clear, browsable hierarchy.</p>
   </div>
-  <button class="button button-primary" type="button" (click)="reset()">
+  <button class="button button-primary" type="button" (click)="reset()" [disabled]="reordering">
     <span aria-hidden="true">＋</span> Add category
   </button>
 </div>
@@ -59,14 +59,14 @@
           <input [(ngModel)]="draft.isActive" name="isActive" type="checkbox" />
           <span>Active category</span>
         </label>
-        <button class="button button-primary" type="submit" [disabled]="categoryForm.invalid || saving">
+        <button class="button button-primary" type="submit" [disabled]="categoryForm.invalid || saving || reordering">
           {{ saving ? 'Saving…' : 'Save changes' }}
         </button>
       </div>
     } @else {
       <div class="form-footer">
         <span class="form-note">New categories are created as active.</span>
-        <button class="button button-primary" type="submit" [disabled]="categoryForm.invalid || saving">
+        <button class="button button-primary" type="submit" [disabled]="categoryForm.invalid || saving || reordering">
           {{ saving ? 'Saving…' : 'Create category' }}
         </button>
       </div>
@@ -75,21 +75,27 @@
 </section>
 
 <section class="table-card">
+  @let tree = categoryTree;
   <div class="table-toolbar">
     <div>
       <h2>All categories</h2>
-      <p>{{ totalCount }} categories</p>
+      <p>{{ tree.totalCount }} categories · {{ tree.groupCount }} parent groups</p>
+      <p>Column sorting applies to parent groups. Children follow their Sort Order, lowest first.</p>
+      <p>Drag the grip or use the arrows to reorder child categories. Clear search and finish editing first.</p>
     </div>
     <form class="search-form" (ngSubmit)="search()">
       <input [(ngModel)]="searchTerm" (ngModelChange)="search()" name="search" aria-label="Search categories" placeholder="Search name or slug…" />
       <button class="button button-secondary" type="submit">Search</button>
-      <button class="button button-secondary" type="button" (click)="loadCategories()">Refresh</button>
+      <button class="button button-secondary" type="button" (click)="loadCategories()" [disabled]="reordering">Refresh</button>
     </form>
   </div>
 
+  @if (tree.hasInvalidHierarchy) {
+    <div class="alert alert-error" role="alert">Some categories have missing or circular parents. They are shown as separate groups until their parent relationships are corrected.</div>
+  }
   @if (loading) {
     <div class="inline-loader" role="status">Loading categories…</div>
-  } @else if (!pagedCategories.length) {
+  } @else if (!tree.rows.length) {
     <div class="empty-state">No categories found. Create your first category above.</div>
   } @else {
     <div class="table-scroll">
@@ -105,16 +111,37 @@
           </tr>
         </thead>
         <tbody>
-          @for (category of pagedCategories; track category.id) {
-            <tr>
-              <td><strong>{{ category.name }}</strong><small>#{{ category.id }}</small></td>
+          @for (row of tree.rows; track row.category.id) {
+            @let category = row.category;
+            <tr (dragover)="dragOver($event, category)" (drop)="drop($event, category)">
+              <td>
+                <div class="category-name" [style.padding-left.px]="row.depth * 24">
+                  @if (row.depth > 0) {
+                    <span class="drag-handle" [class.disabled]="!canReorder(category)" [draggable]="canReorder(category)"
+                      (dragstart)="dragStart($event, category)" (dragend)="draggingId = null"
+                      aria-hidden="true" title="Drag to reorder siblings">⋮⋮</span>
+                    <span class="reorder-arrows">
+                      <button type="button" [disabled]="!canMove(category, -1)" [attr.aria-label]="'Move ' + category.name + ' up'" (click)="moveCategory(category, -1)">▲</button>
+                      <button type="button" [disabled]="!canMove(category, 1)" [attr.aria-label]="'Move ' + category.name + ' down'" (click)="moveCategory(category, 1)">▼</button>
+                    </span>
+                  }
+                  @if (row.hasChildren) {
+                    <button class="tree-toggle" type="button" [attr.aria-expanded]="row.expanded"
+                      [attr.aria-label]="(row.expanded ? 'Collapse ' : 'Expand ') + category.name + ' category'"
+                      (click)="toggleCategory(row)">{{ row.expanded ? '−' : '+' }}</button>
+                  } @else {
+                    <span class="tree-spacer" aria-hidden="true"></span>
+                  }
+                  <span><strong>{{ category.name }}</strong><small>#{{ category.id }}</small></span>
+                </div>
+              </td>
               <td>{{ category.slug }}</td>
               <td>{{ parentName(category.parentId) }}</td>
               <td>{{ category.sortOrder }}</td>
               <td><span class="status-pill" [class.inactive]="!category.isActive">{{ category.isActive ? 'Active' : 'Inactive' }}</span></td>
               <td class="actions">
-                <button class="text-button" type="button" (click)="edit(category)">Edit</button>
-                <button class="text-button danger-text" type="button" (click)="delete(category)">Delete</button>
+                <button class="icon-button" type="button" title="Edit" [attr.aria-label]="'Edit ' + category.name" (click)="edit(category)" [disabled]="reordering"><app-action-icon name="edit" /></button>
+                <button class="icon-button danger-text" type="button" title="Delete" [attr.aria-label]="'Delete ' + category.name" (click)="delete(category)" [disabled]="reordering"><app-action-icon name="delete" /></button>
               </td>
             </tr>
           }
@@ -123,10 +150,10 @@
     </div>
   }
   <div class="pagination">
-    <span>Page {{ pageNumber }} of {{ pageCount }}</span>
+    <span>Page {{ pageNumber }} of {{ tree.pageCount }}</span>
     <div>
       <label class="page-size">
-        Rows
+        Parent groups
         <select [ngModel]="pageSize" (ngModelChange)="changePageSize($event)" name="pageSize">
           @for (size of pageSizeOptions; track size) {
             <option [ngValue]="size">{{ size }}</option>
@@ -134,7 +161,7 @@
         </select>
       </label>
       <button class="button button-secondary" type="button" [disabled]="pageNumber <= 1 || loading" (click)="changePage(pageNumber - 1)">Previous</button>
-      <button class="button button-secondary" type="button" [disabled]="pageNumber >= pageCount || loading" (click)="changePage(pageNumber + 1)">Next</button>
+      <button class="button button-secondary" type="button" [disabled]="pageNumber >= tree.pageCount || loading" (click)="changePage(pageNumber + 1)">Next</button>
     </div>
   </div>
   @if (categoryToDelete) {

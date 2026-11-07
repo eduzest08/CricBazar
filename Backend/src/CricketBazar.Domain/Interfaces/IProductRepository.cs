@@ -2,6 +2,14 @@ namespace CricketBazar.Domain.Interfaces;
 
 using Entities;
 
+public enum PermanentProductDeleteResult
+{
+    Deleted,
+    NotFound,
+    Active,
+    HasOrderHistory
+}
+
 public interface IProductRepository
 {
     Task<Product?> GetByIdAsync(int id);
@@ -10,6 +18,7 @@ public interface IProductRepository
     Task<int> AddAsync(Product entity);
     Task<bool> UpdateAsync(Product entity);
     Task<bool> DeleteAsync(int id);
+    Task<PermanentProductDeleteResult> DeleteInactiveAsync(int id, CancellationToken cancellationToken);
     Task<Product?> GetBySkuAsync(string sku);
     Task<Product?> GetBySlugAsync(string slug);
     Task<IEnumerable<Product>> GetByCategoryAsync(int categoryId);
@@ -30,6 +39,7 @@ public interface ICategoryRepository
     Task<IEnumerable<Category>> GetChildCategoriesAsync(int parentId);
     Task<IEnumerable<Category>> GetActiveCategoriesAsync();
     Task<IEnumerable<Category>> GetCategoriesHierarchyAsync();
+    Task<bool> ReorderAsync(int? parentId, IReadOnlyList<(int Id, int SortOrder)> categories, CancellationToken cancellationToken);
 }
 
 public interface IBrandRepository
@@ -120,4 +130,3 @@ public interface ICustomBatRequestRepository
     Task<IEnumerable<CustomBatRequest>> GetPendingAsync();
     Task<IEnumerable<CustomBatRequest>> GetByStatusAsync(string status);
 }
-

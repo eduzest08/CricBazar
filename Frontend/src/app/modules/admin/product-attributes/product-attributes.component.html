@@ -107,8 +107,8 @@
               <td>{{ attribute.name }}</td>
               <td>{{ attribute.value }}</td>
               <td class="actions">
-                <button class="text-button" type="button" (click)="edit(attribute)">Edit</button>
-                <button class="text-button danger-text" type="button" (click)="delete(attribute)">Delete</button>
+                <button class="icon-button" type="button" title="Edit" [attr.aria-label]="'Edit attribute ' + attribute.name + ' for ' + attribute.productName" (click)="edit(attribute)"><app-action-icon name="edit" /></button>
+                <button class="icon-button danger-text" type="button" title="Delete" [attr.aria-label]="'Delete attribute ' + attribute.name + ' for ' + attribute.productName" (click)="delete(attribute)"><app-action-icon name="delete" /></button>
               </td>
             </tr>
           }

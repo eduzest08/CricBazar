@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CatalogApiService } from '../../../core/services/catalog-api.service';
 import { Brand, BrandDraft, BrandSortField } from '../../../core/models/catalog.models';
 import { getApiErrorMessage } from '../../../core/utils/api-error';
+import { ActionIconComponent } from '../shared/action-icon.component';
 
 function emptyBrandDraft(): BrandDraft {
   return { name: '', slug: '', logoUrl: '', isActive: true };
@@ -11,7 +12,7 @@ function emptyBrandDraft(): BrandDraft {
 
 @Component({
   selector: 'app-brand-management',
-  imports: [FormsModule],
+  imports: [FormsModule, ActionIconComponent],
   templateUrl: './brand-management.component.html',
   styleUrl: './brand-management.component.scss',
 })

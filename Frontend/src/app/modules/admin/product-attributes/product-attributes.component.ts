@@ -8,6 +8,7 @@ import {
   ProductAttributeSortField,
 } from '../../../core/models/catalog.models';
 import { getApiErrorMessage } from '../../../core/utils/api-error';
+import { ActionIconComponent } from '../shared/action-icon.component';
 
 function emptyAttributeDraft(): ProductAttributeDraft {
   return { productId: null, name: '', value: '' };
@@ -15,7 +16,7 @@ function emptyAttributeDraft(): ProductAttributeDraft {
 
 @Component({
   selector: 'app-product-attributes',
-  imports: [FormsModule],
+  imports: [FormsModule, ActionIconComponent],
   templateUrl: './product-attributes.component.html',
   styleUrl: './product-attributes.component.scss',
 })

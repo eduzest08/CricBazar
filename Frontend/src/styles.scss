@@ -2,6 +2,38 @@
 
 @include admin.page-styles;
 
+.admin-shell {
+  --sidebar-start: #17362a; --sidebar-mid: #10291f; --sidebar-end: #0b1c16;
+  --theme-accent: #c9ef77; --theme-accent-hover: #bce85c; --theme-accent-light: #e1faab; --theme-accent-dark: #b9e46f;
+  --theme-ink: #18301f; --theme-link: #386634; --theme-bg: #f5f7f4; --theme-tint: #f4f7f4;
+  --theme-border: #dde5de; --theme-focus: #789d45; --theme-table: #fafbfa;
+  --theme-active-bg: rgb(190 234 131 / 18%); --theme-active-end: rgb(190 234 131 / 6%); --theme-sidebar-accent: #c6ec83;
+}
+
+.admin-shell[data-theme='ocean'] {
+  --sidebar-start: #173c54; --sidebar-mid: #102e43; --sidebar-end: #0a1d2c;
+  --theme-accent: #a7d8f3; --theme-accent-hover: #83c6e9; --theme-accent-light: #d3efff; --theme-accent-dark: #88c8ec;
+  --theme-ink: #102c3c; --theme-link: #285d7d; --theme-bg: #f2f7fa; --theme-tint: #eef6fa;
+  --theme-border: #d5e5ee; --theme-focus: #4a86a8; --theme-table: #f7fafc;
+  --theme-active-bg: rgb(144 207 243 / 20%); --theme-active-end: rgb(144 207 243 / 6%); --theme-sidebar-accent: #a7d8f3;
+}
+
+.admin-shell[data-theme='plum'] {
+  --sidebar-start: #402947; --sidebar-mid: #302035; --sidebar-end: #201724;
+  --theme-accent: #e2c5e8; --theme-accent-hover: #d4a9dd; --theme-accent-light: #f5e3f7; --theme-accent-dark: #d2a3dd;
+  --theme-ink: #39203e; --theme-link: #70497b; --theme-bg: #f8f4f8; --theme-tint: #f8f0f8;
+  --theme-border: #e8dbe9; --theme-focus: #a275aa; --theme-table: #fcf9fc;
+  --theme-active-bg: rgb(228 190 235 / 20%); --theme-active-end: rgb(228 190 235 / 6%); --theme-sidebar-accent: #e2c5e8;
+}
+
+.admin-shell[data-theme='slate'] {
+  --sidebar-start: #344151; --sidebar-mid: #25313e; --sidebar-end: #17212b;
+  --theme-accent: #c6d6e5; --theme-accent-hover: #aabfd4; --theme-accent-light: #edf4fa; --theme-accent-dark: #aec4d8;
+  --theme-ink: #202f3c; --theme-link: #4c667d; --theme-bg: #f3f5f7; --theme-tint: #eef2f6;
+  --theme-border: #d9e1e9; --theme-focus: #728ca2; --theme-table: #f9fafb;
+  --theme-active-bg: rgb(202 219 236 / 20%); --theme-active-end: rgb(202 219 236 / 6%); --theme-sidebar-accent: #c6d6e5;
+}
+
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap');
 
 * {

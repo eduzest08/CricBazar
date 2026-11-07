@@ -21,6 +21,9 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
     {
         var product = _mapper.Map<Product>(request.Product);
         product.CreatedAt = DateTime.UtcNow;
+        product.UpdatedAt = product.CreatedAt;
+        product.CreatedByUserId = string.IsNullOrWhiteSpace(request.Product.CreatedByUserId)
+            ? null : request.Product.CreatedByUserId.Trim();
         product.Sku = await GenerateUniqueSkuAsync();
 
         product.Id = await _repository.AddAsync(product);
@@ -72,6 +75,19 @@ public class DeleteProductCommandHandler : IRequestHandler<DeleteProductCommand,
     public DeleteProductCommandHandler(IProductRepository repository)
     {
         _repository = repository;
+    }
+
+    public class DeleteInactiveProductCommandHandler : IRequestHandler<DeleteInactiveProductCommand, PermanentProductDeleteResult>
+    {
+        private readonly IProductRepository _repository;
+
+        public DeleteInactiveProductCommandHandler(IProductRepository repository)
+        {
+            _repository = repository;
+        }
+
+        public Task<PermanentProductDeleteResult> Handle(DeleteInactiveProductCommand request, CancellationToken cancellationToken)
+            => _repository.DeleteInactiveAsync(request.Id, cancellationToken);
     }
 
     public async Task<bool> Handle(DeleteProductCommand request, CancellationToken cancellationToken)

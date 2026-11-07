@@ -15,10 +15,13 @@ export interface Product {
   avgRating: number;
   reviewCount: number;
   salesCount: number;
+  sortOrder: number;
   metaTitle: string | null;
   metaDesc: string | null;
   isActive: boolean;
   createdAt: string;
+  updatedAt: string;
+  createdBy: string | null;
 }
 
 export interface ProductDraft {

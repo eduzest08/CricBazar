@@ -4,9 +4,17 @@
     <h1>Products</h1>
     <p>Manage your product catalog, pricing, and stock.</p>
   </div>
-  <button class="button button-primary" type="button" (click)="startCreate()">
-    <span aria-hidden="true">＋</span> Add product
-  </button>
+  <div class="heading-actions">
+    <button class="button button-secondary" type="button" (click)="exportProducts('excel')" [disabled]="!!exporting">
+      {{ exporting === 'excel' ? 'Preparing Excel…' : 'Download Excel' }}
+    </button>
+    <button class="button button-secondary" type="button" (click)="exportProducts('pdf')" [disabled]="!!exporting">
+      {{ exporting === 'pdf' ? 'Preparing PDF…' : 'Download PDF' }}
+    </button>
+    <button class="button button-primary" type="button" (click)="startCreate()">
+      <span aria-hidden="true">＋</span> Add product
+    </button>
+  </div>
 </div>
 
 @if (errorMessage) {
@@ -49,8 +57,8 @@
         <span class="field-label">Category <b>*</b></span>
         <select [(ngModel)]="draft.categoryId" name="categoryId" required>
           <option [ngValue]="null" disabled>Select category</option>
-          @for (category of categories; track category.id) {
-            <option [ngValue]="category.id">{{ category.name }}</option>
+          @for (option of categoryOptions; track option.category.id) {
+            <option [ngValue]="option.category.id" [attr.aria-label]="option.path" [class.parent-category]="option.isParent">{{ option.treeLabel }}</option>
           }
         </select>
       </label>
@@ -63,46 +71,103 @@
           }
         </select>
       </label>
+      <div class="pricing-fields wide-field">
       <label>
         MRP
-        <input [(ngModel)]="draft.mrp" name="mrp" type="number" min="0" step="0.01" required />
-      </label>
-      <label>
-        Sale price
-        <input [(ngModel)]="draft.salePrice" name="salePrice" type="number" min="0" step="0.01" required />
+        <input [(ngModel)]="draft.mrp" (ngModelChange)="changePrice('mrp')" name="mrp" type="number" min="0" step="0.01" required />
       </label>
       <label>
         Cost price
-        <input [(ngModel)]="draft.costPrice" name="costPrice" type="number" min="0" step="0.01" required />
+        <input [(ngModel)]="draft.costPrice" (ngModelChange)="changePrice('costPrice')" name="costPrice" type="number" min="0" step="0.01" required />
       </label>
+      <label>
+        Desired profit margin (%)
+        <input [ngModel]="marginPercentage" (ngModelChange)="changePercentage('margin', $event)" [ngModelOptions]="{standalone: true}" name="marginPercentage" type="number" step="any" placeholder="Enter margin %" aria-describedby="pricing-help" />
+      </label>
+      <label>
+        Discount from MRP (%)
+        <input [ngModel]="discountPercentage" (ngModelChange)="changePercentage('discount', $event)" [ngModelOptions]="{standalone: true}" name="discountPercentage" type="number" step="any" placeholder="Enter discount %" aria-describedby="pricing-help" />
+      </label>
+      <label>
+        Calculated sale price
+        <input [ngModel]="calculationError ? null : draft.salePrice" name="salePrice" type="number" readonly aria-describedby="pricing-help" />
+      </label>
+      <p class="form-hint wide-field" id="pricing-help">New products start with a 0% margin. Enter a margin or discount to calculate the sale price. The last percentage entered controls the calculation; the other is updated from the resulting price.</p>
+      @if (calculationError) {
+        <div class="alert alert-error wide-field" role="alert">{{ calculationError }}</div>
+      }
+      @if (!calculationError && isSellingAtLoss) {
+        <div class="alert alert-error wide-field" role="alert">Loss warning: the sale price is below the cost price.</div>
+      }
+      @if (!calculationError) {
+        <div class="price-calculator wide-field" aria-live="polite">
+          <div>
+            <strong>Profit margin:</strong>
+            @if (profitMargin !== null) {
+              {{ profitMargin | percent:'1.2-2' }}
+            } @else {
+              Not available (enter a sale price above zero and a valid cost price).
+            }
+            <small>(Sale price − cost price) / sale price</small>
+          </div>
+          <div>
+            <strong>Markup:</strong>
+            @if (markup !== null) {
+              {{ markup | percent:'1.2-2' }}
+            } @else {
+              Not available (enter a cost price above zero and a valid sale price).
+            }
+            <small>(Sale price − cost price) / cost price</small>
+          </div>
+        </div>
+      }
+      </div>
       <label>
         Stock quantity
         <input [(ngModel)]="draft.stock" name="stock" type="number" min="0" step="1" required />
       </label>
-      <label class="wide-field">
-        Short description
-        <input [(ngModel)]="draft.shortDesc" name="shortDesc" maxlength="500" placeholder="A short summary for product cards" />
-      </label>
       <div class="wide-field">
-        <span id="description-label">Description</span>
-        <app-rich-text-editor [(ngModel)]="draft.description" name="description" />
+        <button class="button button-secondary" type="button" aria-haspopup="dialog" (click)="descriptionDialog.showModal()">
+          Edit descriptions and SEO
+        </button>
       </div>
-      <label>
-        Meta title
-        <input [(ngModel)]="draft.metaTitle" name="metaTitle" maxlength="200" />
-      </label>
-      <label>
-        Meta description
-        <input [(ngModel)]="draft.metaDesc" name="metaDesc" maxlength="500" />
-      </label>
     </div>
+
+    <dialog #descriptionDialog class="description-dialog" aria-labelledby="description-dialog-title" (keydown.escape)="descriptionDialog.close(); $event.stopPropagation()">
+      <div class="viewer-header">
+        <h3 id="description-dialog-title">Descriptions and SEO</h3>
+        <button class="text-button" type="button" aria-label="Close descriptions and SEO" (click)="descriptionDialog.close()">✕</button>
+      </div>
+      <p>Changes are saved when you save the product.</p>
+      <div class="form-grid">
+        <label class="wide-field">
+          Short description
+          <input [(ngModel)]="draft.shortDesc" name="shortDesc" maxlength="500" placeholder="A short summary for product cards" autofocus />
+        </label>
+        <div class="wide-field">
+          <span id="description-label">Description</span>
+          <app-rich-text-editor [(ngModel)]="draft.description" name="description" />
+        </div>
+        <label>
+          Meta title
+          <input [(ngModel)]="draft.metaTitle" name="metaTitle" maxlength="200" />
+        </label>
+        <label>
+          Meta description
+          <input [(ngModel)]="draft.metaDesc" name="metaDesc" maxlength="500" />
+        </label>
+      </div>
+      <div class="description-dialog-actions">
+        <button class="button button-primary" type="button" (click)="descriptionDialog.close()">Done</button>
+      </div>
+    </dialog>
 
     <div class="form-footer">
       <label class="toggle-label">
         <input [(ngModel)]="draft.isActive" name="isActive" type="checkbox" />
         <span>Active product</span>
       </label>
-      <button class="button button-primary" type="submit" [disabled]="productForm.invalid || saving">
+      <button class="button button-primary" type="submit" [disabled]="productForm.invalid || saving || !!calculationError">
         {{ saving ? 'Saving…' : editingId === null ? 'Create product' : 'Save changes' }}
       </button>
     </div>
@@ -135,6 +200,7 @@
       <table>
         <thead>
           <tr>
+            <th [attr.aria-sort]="ariaSort('id')"><button class="sort-button" type="button" (click)="sort('id')">PRODUCT NO. {{ sortIndicator('id') }}</button></th>
             <th [attr.aria-sort]="ariaSort('name')"><button class="sort-button" type="button" (click)="sort('name')">PRODUCT {{ sortIndicator('name') }}</button></th>
             <th [attr.aria-sort]="ariaSort('sku')"><button class="sort-button" type="button" (click)="sort('sku')">SKU {{ sortIndicator('sku') }}</button></th>
             <th>CATEGORY / BRAND</th>
@@ -142,15 +208,19 @@
             <th>COST</th>
             <th [attr.aria-sort]="ariaSort('stock')"><button class="sort-button" type="button" (click)="sort('stock')">STOCK {{ sortIndicator('stock') }}</button></th>
             <th>STATUS</th>
+            <th>CREATED AT</th>
+            <th>UPDATED AT</th>
+            <th>CREATED BY</th>
             <th><span class="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody>
           @for (product of products; track product.id) {
             <tr>
+              <td>{{ product.id }}</td>
               <td>
                 <strong>{{ product.name }}</strong>
-                <small>#{{ product.id }} · {{ product.slug }}</small>
+                <small>{{ product.slug }}</small>
               </td>
               <td>{{ product.sku }}</td>
               <td>
@@ -166,13 +236,19 @@
               <td>{{ product.costPrice | currency:'INR':'symbol':'1.0-2' }}</td>
               <td>{{ product.stock }}</td>
               <td><span class="status-pill" [class.inactive]="!product.isActive">{{ product.isActive ? 'Active' : 'Inactive' }}</span></td>
+              <td>{{ product.createdAt | date:'medium' }}</td>
+              <td>{{ product.updatedAt | date:'medium' }}</td>
+              <td>{{ product.createdBy || '—' }}</td>
               <td class="actions">
-                <button class="text-button" type="button" (click)="edit(product)">Edit</button>
-                <button class="text-button" type="button" (click)="openImageViewer(product)">Image viewer</button>
                 @if (product.isActive) {
-                  <button class="text-button danger-text" type="button" (click)="delete(product)">Delete</button>
+                  <button class="icon-button" type="button" title="Edit" [attr.aria-label]="'Edit ' + product.name" (click)="edit(product)"><app-action-icon name="edit" /></button>
+                }
+                <button class="icon-button" type="button" title="View details" [attr.aria-label]="'View details for ' + product.name" (click)="openImageViewer(product)"><app-action-icon name="view" /></button>
+                @if (product.isActive) {
+                  <button class="icon-button danger-text" type="button" title="Move to Inactive" [attr.aria-label]="'Move ' + product.name + ' to Inactive'" (click)="delete(product)"><app-action-icon name="delete" /></button>
                 } @else {
-                  <button class="text-button" type="button" (click)="restore(product)">Restore</button>
+                  <button class="icon-button danger-text" type="button" title="Permanently delete" [attr.aria-label]="'Permanently delete ' + product.name" (click)="delete(product)"><app-action-icon name="delete" /></button>
+                  <button class="icon-button" type="button" title="Restore" [attr.aria-label]="'Restore ' + product.name" (click)="restore(product)"><app-action-icon name="restore" /></button>
                 }
               </td>
             </tr>
@@ -200,45 +276,105 @@
     <div class="modal-backdrop" (click)="closeImageViewer()" (keydown.escape)="closeImageViewer()">
       <div class="modal viewer-modal" role="dialog" aria-modal="true" aria-labelledby="viewer-title" (click)="$event.stopPropagation()">
         <div class="viewer-header">
-          <h3 id="viewer-title">{{ viewerProduct.name }} — Images</h3>
-          <button class="text-button" type="button" aria-label="Close" (click)="closeImageViewer()">✕</button>
+          <h3 id="viewer-title">{{ viewerProduct.name }} — Product details</h3>
+          <button class="text-button" type="button" aria-label="Close product details" autofocus (click)="closeImageViewer()">✕</button>
         </div>
-        @if (viewerLoading) {
-          <p>Loading images...</p>
-        } @else if (viewerError) {
-          <p class="danger-text">{{ viewerError }}</p>
-        } @else if (!viewerImages.length) {
-          <p>No images uploaded for this product.</p>
-        } @else {
-          <div class="viewer-main">
-            @if (viewerImages.length > 1) {
-              <button class="viewer-nav viewer-prev" type="button" aria-label="Previous image" (click)="stepViewer(-1)">‹</button>
+        <div class="details-layout">
+          <div class="details-gallery">
+            @if (viewerLoading) {
+              <p>Loading images...</p>
+            } @else if (viewerError) {
+              <p class="danger-text">{{ viewerError }}</p>
+            } @else if (!viewerImages.length) {
+              <p>No images uploaded for this product.</p>
+            } @else {
+              <div class="viewer-main">
+                @if (viewerImages.length > 1) {
+                  <button class="viewer-nav viewer-prev" type="button" aria-label="Previous image" (click)="stepViewer(-1)">‹</button>
+                }
+                @if (viewerFailedImages.has(viewerCurrent!.id)) {
+                  <p class="viewer-image-error" role="alert">This image could not be loaded. Check its URL or re-upload the image.</p>
+                } @else {
+                  <img [src]="assetUrl(viewerCurrent!.url)" [alt]="viewerProduct.name + ' image ' + (viewerIndex + 1)" (error)="imageFailed(viewerCurrent!.id)" />
+                }
+                @if (viewerImages.length > 1) {
+                  <button class="viewer-nav viewer-next" type="button" aria-label="Next image" (click)="stepViewer(1)">›</button>
+                }
+                <span class="viewer-badge">{{ viewerIndex === 0 ? 'Main image' : 'Image ' + (viewerIndex + 1) }} of {{ viewerImages.length }}</span>
+              </div>
+              <div class="viewer-thumbs">
+                @for (image of viewerImages; track image.id; let i = $index) {
+                  <button class="viewer-thumb" [class.active]="i === viewerIndex" type="button" [attr.aria-label]="'Show image ' + (i + 1)" (click)="selectViewerImage(i)">
+                    @if (viewerFailedImages.has(image.id)) {
+                      <span>Unavailable</span>
+                    } @else {
+                      <img [src]="assetUrl(image.url)" [alt]="'Thumbnail ' + (i + 1)" (error)="imageFailed(image.id)" />
+                    }
+                  </button>
+                }
+              </div>
             }
-            <img [src]="assetUrl(viewerCurrent!.url)" [alt]="viewerProduct.name + ' image ' + (viewerIndex + 1)" />
-            @if (viewerImages.length > 1) {
-              <button class="viewer-nav viewer-next" type="button" aria-label="Next image" (click)="stepViewer(1)">›</button>
-            }
-            <span class="viewer-badge">{{ viewerIndex === 0 ? 'Main image' : 'Image ' + (viewerIndex + 1) }} of {{ viewerImages.length }}</span>
+            <section class="viewer-profit" aria-label="Profit and loss">
+              <h4>Profit and loss per item</h4>
+              <dl class="details-grid">
+                <div><dt>Cost price</dt><dd>{{ viewerProduct.costPrice | currency:'INR':'symbol':'1.2-2' }}</dd></div>
+                <div><dt>Sale price</dt><dd>{{ viewerProduct.salePrice | currency:'INR':'symbol':'1.2-2' }}</dd></div>
+                <div>
+                  <dt>{{ viewerProfit !== null && viewerProfit < 0 ? 'Loss' : 'Profit' }}</dt>
+                  <dd [class.danger-text]="viewerProfit !== null && viewerProfit < 0">
+                    @if (viewerProfit !== null) {
+                      {{ (viewerProfit < 0 ? -viewerProfit : viewerProfit) | currency:'INR':'symbol':'1.2-2' }}
+                    } @else { — }
+                  </dd>
+                </div>
+                <div><dt>Profit margin</dt><dd>{{ viewerMargin !== null ? (viewerMargin | percent:'1.2-2') : 'Not available' }}</dd></div>
+                <div><dt>Markup</dt><dd>{{ viewerMarkup !== null ? (viewerMarkup | percent:'1.2-2') : 'Not available' }}</dd></div>
+              </dl>
+            </section>
           </div>
-          <div class="viewer-thumbs">
-            @for (image of viewerImages; track image.id; let i = $index) {
-              <button class="viewer-thumb" [class.active]="i === viewerIndex" type="button" [attr.aria-label]="'Show image ' + (i + 1)" (click)="selectViewerImage(i)">
-                <img [src]="assetUrl(image.url)" [alt]="'Thumbnail ' + (i + 1)" />
-              </button>
-            }
+          <div class="details-content">
+            <dl class="details-grid">
+              <div><dt>Product ID</dt><dd>{{ viewerProduct.id }}</dd></div>
+              <div><dt>SKU</dt><dd>{{ viewerProduct.sku }}</dd></div>
+              <div><dt>Slug</dt><dd>{{ viewerProduct.slug }}</dd></div>
+              <div><dt>Category</dt><dd>{{ categoryName(viewerProduct.categoryId) }} (#{{ viewerProduct.categoryId }})</dd></div>
+              <div><dt>Brand</dt><dd>{{ brandName(viewerProduct.brandId) }} (#{{ viewerProduct.brandId }})</dd></div>
+              <div><dt>Status</dt><dd>{{ viewerProduct.isActive ? 'Active' : 'Inactive' }}</dd></div>
+              <div><dt>MRP</dt><dd>{{ viewerProduct.mrp | currency:'INR':'symbol':'1.0-2' }}</dd></div>
+              <div><dt>Sale price</dt><dd>{{ viewerProduct.salePrice | currency:'INR':'symbol':'1.0-2' }}</dd></div>
+              <div><dt>Cost price</dt><dd>{{ viewerProduct.costPrice | currency:'INR':'symbol':'1.0-2' }}</dd></div>
+              <div><dt>Discount</dt><dd>{{ viewerProduct.discountPct }}%</dd></div>
+              <div><dt>Stock</dt><dd>{{ viewerProduct.stock }}</dd></div>
+              <div><dt>Average rating</dt><dd>{{ viewerProduct.avgRating }}</dd></div>
+              <div><dt>Reviews</dt><dd>{{ viewerProduct.reviewCount }}</dd></div>
+              <div><dt>Sales</dt><dd>{{ viewerProduct.salesCount }}</dd></div>
+              <div><dt>Sort order</dt><dd>{{ viewerProduct.sortOrder }}</dd></div>
+              <div><dt>Created by</dt><dd>{{ viewerProduct.createdBy || '—' }}</dd></div>
+              <div><dt>Created at</dt><dd>{{ viewerProduct.createdAt | date:'medium' }}</dd></div>
+              <div><dt>Updated at</dt><dd>{{ viewerProduct.updatedAt | date:'medium' }}</dd></div>
+              <div class="details-wide"><dt>Short description</dt><dd>{{ viewerProduct.shortDesc || '—' }}</dd></div>
+              <div class="details-wide"><dt>Description</dt><dd [innerHTML]="viewerProduct.description || '—'"></dd></div>
+              <div class="details-wide"><dt>Meta title</dt><dd>{{ viewerProduct.metaTitle || '—' }}</dd></div>
+              <div class="details-wide"><dt>Meta description</dt><dd>{{ viewerProduct.metaDesc || '—' }}</dd></div>
+            </dl>
           </div>
-        }
+        </div>
       </div>
     </div>
   }
   @if (productToDelete) {
     <div class="modal-backdrop" (click)="cancelDelete()">
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-title" (click)="$event.stopPropagation()">
-        <h3 id="delete-title">Move product to Inactive?</h3>
-        <p><strong>{{ productToDelete.name }}</strong> will be moved to the Inactive tab. You can restore it later.</p>
+        @if (productToDelete.isActive) {
+          <h3 id="delete-title">Move product to Inactive?</h3>
+          <p><strong>{{ productToDelete.name }}</strong> will be moved to the Inactive tab. You can restore it later.</p>
+        } @else {
+          <h3 id="delete-title">Permanently delete product?</h3>
+          <p><strong>{{ productToDelete.name }}</strong> and its images, attributes, variants, reviews, cart and wishlist entries will be permanently deleted. This cannot be undone. Products linked to order history cannot be deleted.</p>
+        }
         <div class="modal-actions">
-          <button class="button button-secondary" type="button" (click)="cancelDelete()">Cancel</button>
-          <button class="button danger-button" type="button" (click)="confirmDelete()">Delete</button>
+          <button class="button button-secondary" type="button" [disabled]="deletingProduct" (click)="cancelDelete()">Cancel</button>
+          <button class="button danger-button" type="button" [disabled]="deletingProduct" (click)="confirmDelete()">{{ deletingProduct ? 'Deleting…' : 'Delete' }}</button>
         </div>
       </div>
     </div>

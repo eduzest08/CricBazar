@@ -3,6 +3,63 @@
   font-size: 11px;
 }
 
+.category-name {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.drag-handle {
+  color: var(--theme-link, #467331);
+  cursor: grab;
+  font-size: 17px;
+  letter-spacing: -5px;
+  padding: 4px 8px 4px 0;
+  user-select: none;
+
+  &:active { cursor: grabbing; }
+  &.disabled { color: #b7c1ba; cursor: not-allowed; }
+}
+
+.reorder-arrows {
+  display: grid;
+  gap: 2px;
+
+  button {
+    background: transparent;
+    border: 0;
+    color: var(--theme-link, #467331);
+    cursor: pointer;
+    font-size: 9px;
+    padding: 2px;
+  }
+
+  button:disabled { color: #c4cdc6; cursor: not-allowed; }
+  button:focus-visible { outline: 2px solid var(--theme-focus, #789d45); }
+}
+
+.tree-toggle,
+.tree-spacer {
+  flex: 0 0 24px;
+  height: 24px;
+  width: 24px;
+}
+
+.tree-toggle {
+  background: var(--theme-tint, #f4f7f4);
+  border: 1px solid var(--theme-border, #dde5de);
+  border-radius: 6px;
+  color: var(--theme-link, #467331);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.tree-toggle:focus-visible {
+  outline: 2px solid var(--theme-focus, #789d45);
+  outline-offset: 2px;
+}
+
 .modal-backdrop {
   align-items: center;
   background: rgba(0, 0, 0, 0.5);

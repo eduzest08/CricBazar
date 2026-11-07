@@ -10,6 +10,10 @@ public class MappingProfile : Profile
     {
         // Product mappings
         CreateMap<Product, ProductDto>()
+            .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src =>
+                src.CreatedByUserId ?? (src.CreatedBy.HasValue ? src.CreatedBy.Value.ToString() : null)))
+            .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.SpecifyKind(src.CreatedAt, DateTimeKind.Utc)))
+            .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.SpecifyKind(src.UpdatedAt, DateTimeKind.Utc)))
             .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images))
             .ForMember(dest => dest.Variants, opt => opt.MapFrom(src => src.Variants))
             .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category))

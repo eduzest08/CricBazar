@@ -9,6 +9,7 @@ import {
   ProductVariantSortField,
 } from '../../../core/models/catalog.models';
 import { getApiErrorMessage } from '../../../core/utils/api-error';
+import { ActionIconComponent } from '../shared/action-icon.component';
 
 function emptyVariantDraft(): ProductVariantDraft {
   return { productId: null, size: '', color: '', hand: '', stock: 0, priceOverride: null };
@@ -16,7 +17,7 @@ function emptyVariantDraft(): ProductVariantDraft {
 
 @Component({
   selector: 'app-product-variants',
-  imports: [FormsModule, DecimalPipe],
+  imports: [FormsModule, DecimalPipe, ActionIconComponent],
   templateUrl: './product-variants.component.html',
   styleUrl: './product-variants.component.scss',
 })

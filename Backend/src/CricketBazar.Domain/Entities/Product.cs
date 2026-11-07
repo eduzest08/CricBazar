@@ -23,6 +23,9 @@ public class Product
     public string? MetaDesc { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public int? CreatedBy { get; set; }
+    public string? CreatedByUserId { get; set; }
 
     // Navigation properties
     public virtual Category? Category { get; set; }

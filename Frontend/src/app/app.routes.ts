@@ -4,12 +4,14 @@ import { authGuard, loginGuard } from './core/auth/auth.guard';
 export const routes: Routes = [
   {
     path: 'login',
+    title: 'CricBazar | Admin',
     canActivate: [loginGuard],
     loadComponent: () =>
       import('./modules/auth/login.component').then((component) => component.LoginComponent),
   },
   {
     path: 'admin',
+    title: 'CricBazar | Admin',
     canActivate: [authGuard],
     loadChildren: () =>
       import('./modules/admin/admin.routes').then((routes) => routes.ADMIN_ROUTES),
@@ -21,6 +23,12 @@ export const routes: Routes = [
         (routes) => routes.CUSTOMER_ROUTES,
       ),
   },
-  { path: '', pathMatch: 'full', redirectTo: 'login' },
+  {
+    path: '',
+    pathMatch: 'full',
+    title: 'Home | CricDynamics',
+    loadComponent: () =>
+      import('./modules/customer/storefront-home.component').then((component) => component.StorefrontHomeComponent),
+  },
   { path: '**', redirectTo: 'login' },
 ];

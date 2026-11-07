@@ -12,8 +12,8 @@
 
 .logo-preview {
   align-items: center;
-  background: #f4f7f4;
-  border: 1px solid #dde5de;
+  background: var(--theme-tint, #f4f7f4);
+  border: 1px solid var(--theme-border, #dde5de);
   border-radius: 8px;
   color: #78867d;
   display: inline-flex;

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CatalogApiService } from '../../../core/services/catalog-api.service';
 import { Product, Review, ReviewSortField, ReviewPayload } from '../../../core/models/catalog.models';
 import { getApiErrorMessage } from '../../../core/utils/api-error';
+import { ActionIconComponent } from '../shared/action-icon.component';
 
 const MAX_COMMENT_LENGTH = 2000;
 
@@ -19,7 +20,7 @@ function emptyReviewDraft(): ReviewDraft {
 
 @Component({
   selector: 'app-reviews',
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, ActionIconComponent],
   templateUrl: './reviews.component.html',
   styleUrl: './reviews.component.scss',
 })

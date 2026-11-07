@@ -130,8 +130,8 @@
               <td>{{ variant.stock }}</td>
               <td>{{ variant.priceOverride === null ? '—' : (variant.priceOverride | number: '1.2-2') }}</td>
               <td class="actions">
-                <button class="text-button" type="button" (click)="edit(variant)">Edit</button>
-                <button class="text-button danger-text" type="button" (click)="delete(variant)">Delete</button>
+                <button class="icon-button" type="button" title="Edit" [attr.aria-label]="'Edit variant ' + variant.id + ' for ' + variant.productName" (click)="edit(variant)"><app-action-icon name="edit" /></button>
+                <button class="icon-button danger-text" type="button" title="Delete" [attr.aria-label]="'Delete variant ' + variant.id + ' for ' + variant.productName" (click)="delete(variant)"><app-action-icon name="delete" /></button>
               </td>
             </tr>
           }

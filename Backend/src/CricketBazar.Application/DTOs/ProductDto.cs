@@ -1,5 +1,7 @@
 namespace CricketBazar.Application.DTOs;
 
+using System.ComponentModel.DataAnnotations;
+
 // Product DTOs
 public class ProductDto
 {
@@ -19,10 +21,13 @@ public class ProductDto
     public decimal AvgRating { get; set; }
     public int ReviewCount { get; set; }
     public int SalesCount { get; set; }
+    public int SortOrder { get; set; }
     public string? MetaTitle { get; set; }
     public string? MetaDesc { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public string? CreatedBy { get; set; }
     public CategoryDto? Category { get; set; }
     public BrandDto? Brand { get; set; }
     public List<ProductImageDto> Images { get; set; } = new();
@@ -46,6 +51,9 @@ public class CreateProductDto
     public string? MetaTitle { get; set; }
     public string? MetaDesc { get; set; }
     public bool IsActive { get; set; }
+    /// <summary>Self-reported demo login ID; not an authenticated audit identity.</summary>
+    [StringLength(100)]
+    public string? CreatedByUserId { get; set; }
 }
 
 public class UpdateProductDto
@@ -269,4 +277,3 @@ public class CreateCustomBatRequestDto
     public required string Mobile { get; set; }
     public required string Specs { get; set; }
 }
-

@@ -30,6 +30,9 @@ bld/
 
 # Entity Framework
 Migrations/
+!/Database/migrations/
+/Database/migrations/*
+!/Database/migrations/20261107_product_creator_user_id.sql
 
 # NuGet
 *.nupkg

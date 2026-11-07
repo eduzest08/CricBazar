@@ -1,4 +1,5 @@
 using Dapper;
+using System.Data;
 using CricketBazar.Infrastructure.Data;
 using CricketBazar.Domain.Entities;
 using CricketBazar.Domain.Interfaces;
@@ -16,6 +17,45 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
     public DapperProductRepository(ISqlConnectionFactory connectionFactory) 
         : base(connectionFactory)
     {
+    }
+
+    public async Task<PermanentProductDeleteResult> DeleteInactiveAsync(int id, CancellationToken cancellationToken)
+    {
+        using var connection = _connectionFactory.GetConnection();
+        await connection.OpenAsync(cancellationToken);
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var product = await connection.QuerySingleOrDefaultAsync<bool?>(
+            new CommandDefinition("SELECT IsActive FROM dbo.Products WITH (UPDLOCK, HOLDLOCK) WHERE Id = @Id",
+                new { Id = id }, transaction, cancellationToken: cancellationToken));
+
+        if (product is null) return PermanentProductDeleteResult.NotFound;
+        if (product.Value) return PermanentProductDeleteResult.Active;
+
+        const string orderSql = @"
+            SELECT CASE WHEN EXISTS (
+                SELECT 1 FROM dbo.OrderItems
+                WHERE ProductId = @Id OR VariantId IN (SELECT Id FROM dbo.ProductVariants WHERE ProductId = @Id)
+            ) THEN 1 ELSE 0 END";
+        var hasOrders = await connection.ExecuteScalarAsync<int>(
+            new CommandDefinition(orderSql, new { Id = id }, transaction, cancellationToken: cancellationToken));
+        if (hasOrders != 0) return PermanentProductDeleteResult.HasOrderHistory;
+
+        const string deleteRelatedSql = @"
+            DELETE FROM dbo.CartItems
+            WHERE ProductId = @Id OR VariantId IN (SELECT Id FROM dbo.ProductVariants WHERE ProductId = @Id);
+            DELETE FROM dbo.Wishlist WHERE ProductId = @Id;
+            DELETE FROM dbo.Reviews WHERE ProductId = @Id;
+            DELETE FROM dbo.ProductImages WHERE ProductId = @Id;
+            DELETE FROM dbo.ProductAttributes WHERE ProductId = @Id;
+            DELETE FROM dbo.ProductVariants WHERE ProductId = @Id;";
+        await connection.ExecuteAsync(new CommandDefinition(
+            deleteRelatedSql, new { Id = id }, transaction, cancellationToken: cancellationToken));
+
+        await connection.ExecuteAsync(new CommandDefinition(
+            "DELETE FROM dbo.Products WHERE Id = @Id AND IsActive = 0",
+            new { Id = id }, transaction, cancellationToken: cancellationToken));
+        transaction.Commit();
+        return PermanentProductDeleteResult.Deleted;
     }
 
     /// <summary>
@@ -244,15 +284,18 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
     {
         const string sql = @"
             INSERT INTO dbo.Products 
-            (Name, Slug, Sku, CategoryId, BrandId, Mrp, SalePrice, CostPrice, ShortDesc, Description, Stock, AvgRating, ReviewCount, SalesCount, SortOrder, MetaTitle, MetaDesc, IsActive, CreatedAt)
+            (Name, Slug, Sku, CategoryId, BrandId, Mrp, SalePrice, CostPrice, ShortDesc, Description, Stock, AvgRating, ReviewCount, SalesCount, SortOrder, MetaTitle, MetaDesc, IsActive, CreatedAt, UpdatedAt, CreatedBy, CreatedByUserId)
             VALUES 
-            (@Name, @Slug, @Sku, @CategoryId, @BrandId, @Mrp, @SalePrice, @CostPrice, @ShortDesc, @Description, @Stock, @AvgRating, @ReviewCount, @SalesCount, @SortOrder, @MetaTitle, @MetaDesc, @IsActive, @CreatedAt);
+            (@Name, @Slug, @Sku, @CategoryId, @BrandId, @Mrp, @SalePrice, @CostPrice, @ShortDesc, @Description, @Stock, @AvgRating, @ReviewCount, @SalesCount, @SortOrder, @MetaTitle, @MetaDesc, @IsActive, @CreatedAt, @UpdatedAt, @CreatedBy, @CreatedByUserId);
             
             SELECT CAST(SCOPE_IDENTITY() as int)";
 
         using (var connection = _connectionFactory.GetConnection())
         {
-            return await connection.QueryFirstAsync<int>(sql, product);
+            var parameters = new DynamicParameters(product);
+            parameters.Add("@CreatedAt", product.CreatedAt, DbType.DateTime2);
+            parameters.Add("@UpdatedAt", product.UpdatedAt, DbType.DateTime2);
+            return await connection.QueryFirstAsync<int>(sql, parameters);
         }
     }
 
@@ -266,12 +309,16 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
             SET Name = @Name, Slug = @Slug, Sku = @Sku, CategoryId = @CategoryId, BrandId = @BrandId, 
                 Mrp = @Mrp, SalePrice = @SalePrice, CostPrice = @CostPrice, ShortDesc = @ShortDesc, Description = @Description, 
                 Stock = @Stock, AvgRating = @AvgRating, ReviewCount = @ReviewCount, SalesCount = @SalesCount, 
-                SortOrder = @SortOrder, MetaTitle = @MetaTitle, MetaDesc = @MetaDesc, IsActive = @IsActive
+                SortOrder = @SortOrder, MetaTitle = @MetaTitle, MetaDesc = @MetaDesc, IsActive = @IsActive,
+                UpdatedAt = @UpdatedAt
             WHERE Id = @Id";
 
         using (var connection = _connectionFactory.GetConnection())
         {
-            var rowsAffected = await connection.ExecuteAsync(sql, product);
+            product.UpdatedAt = DateTime.UtcNow;
+            var parameters = new DynamicParameters(product);
+            parameters.Add("@UpdatedAt", product.UpdatedAt, DbType.DateTime2);
+            var rowsAffected = await connection.ExecuteAsync(sql, parameters);
             return rowsAffected > 0;
         }
     }
