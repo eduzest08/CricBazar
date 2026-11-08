@@ -34,6 +34,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Product>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.HasImage);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(300);
             entity.Property(e => e.Slug).IsRequired().HasMaxLength(300);
             entity.Property(e => e.Sku).IsRequired().HasMaxLength(60);

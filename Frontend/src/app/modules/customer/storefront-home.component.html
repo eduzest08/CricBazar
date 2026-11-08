@@ -5,7 +5,7 @@
       <span class="eyebrow">YOUR GAME STARTS HERE</span>
       <h1>Gear up for<br /><em>every innings.</em></h1>
       <p>Find cricket gear for every practice, every match and every moment in between.</p>
-      <a class="primary-link" routerLink="/customer">Shop cricket <span aria-hidden="true">→</span></a>
+      <a class="primary-link" routerLink="/cricket">Shop cricket <span aria-hidden="true">→</span></a>
     </div>
     <div class="hero-art" aria-hidden="true"><span>PLAY<br />YOUR<br /><b>BEST.</b></span><img src="/storefront-logo.png" alt="" /></div>
   </section>
@@ -15,11 +15,11 @@
     <div class="notice error" role="alert">{{ error }} <button type="button" (click)="load()">Try again</button></div>
   } @else {
     <section class="section" aria-labelledby="categories-title">
-      <div class="section-heading"><div><p>EXPLORE THE COLLECTION</p><h2 id="categories-title">Shop by category</h2></div><a routerLink="/customer">View all gear →</a></div>
+      <div class="section-heading"><div><p>EXPLORE THE COLLECTION</p><h2 id="categories-title">Shop by category</h2></div><a routerLink="/cricket">View all gear →</a></div>
       @if (categories.length) {
         <div class="categories">
           @for (category of categories; track category.id) {
-            <a class="category-card" [routerLink]="['/customer/category', category.id]"><span class="category-icon" aria-hidden="true">◉</span><strong>{{ category.name }}</strong><span>Explore →</span></a>
+            <a class="category-card" [routerLink]="['/cricket/category', category.id]"><span class="category-icon" aria-hidden="true">◉</span><strong>{{ category.name }}</strong><span>Explore →</span></a>
           }
         </div>
       } @else {
@@ -27,22 +27,26 @@
       }
     </section>
     <section class="section product-section" aria-labelledby="featured-title">
-      <div class="section-heading"><div><p>DISCOVER YOUR NEXT PICK</p><h2 id="featured-title">Best selling products</h2></div><a routerLink="/customer">View all products →</a></div>
+      <div class="section-heading"><div><p>DISCOVER YOUR NEXT PICK</p><h2 id="featured-title">Best selling products</h2></div><a routerLink="/cricket">View all products →</a></div>
       @if (imageError) { <p class="image-error" role="alert">{{ imageError }} <button type="button" (click)="load()">Try again</button></p> }
       @if (products.length) {
         <div class="products">
           @for (product of products; track product.id) {
             <article class="product-card">
-              <a class="product-image" [routerLink]="['/customer/product', product.id]" [attr.aria-label]="'View details for ' + product.name">
+              <a class="product-image" [routerLink]="['/cricket/product', product.id]" [attr.aria-label]="'View details for ' + product.name">
                 @if (images.get(product.id) && !failedImages.has(product.id)) {
                   <img [src]="images.get(product.id)" [alt]="product.name" (error)="failedImages.add(product.id)" />
                 } @else { <span>{{ imagesLoading ? 'Loading image...' : 'Image unavailable' }}</span> }
                 @if (discount(product)) { <span class="discount">{{ discount(product) }}% OFF</span> }
               </a>
               <div class="product-info">
-                <h3><a [routerLink]="['/customer/product', product.id]">{{ product.name }}</a></h3>
+                <h3><a [routerLink]="['/cricket/product', product.id]">{{ product.name }}</a></h3>
                 <div class="price"><strong>{{ product.salePrice | currency:'INR':'symbol':'1.0-2' }}</strong>@if (discount(product)) { <del>{{ product.mrp | currency:'INR':'symbol':'1.0-2' }}</del> }</div>
-                <a class="product-link" [routerLink]="['/customer/product', product.id]">View details →</a>
+                <a class="product-link" [routerLink]="['/cricket/product', product.id]">View details →</a>
+                <p class="cart-message" role="status">{{ cartMessageProductId === product.id ? cartMessage : '' }}</p>
+                <button class="add-to-cart" type="button" [disabled]="product.stock <= 0" (click)="addToCart(product)">
+                  {{ product.stock > 0 ? 'Add to cart' : 'Out of stock' }}
+                </button>
               </div>
             </article>
           }
@@ -53,15 +57,15 @@
     </section>
     @if (brands.length) {
       <section class="section" aria-labelledby="brands-title">
-        <div class="section-heading"><div><p>FIND YOUR FAVOURITES</p><h2 id="brands-title">Shop by brand</h2></div><a routerLink="/customer">Browse all →</a></div>
+        <div class="section-heading"><div><p>FIND YOUR FAVOURITES</p><h2 id="brands-title">Shop by brand</h2></div><a routerLink="/cricket">Browse all →</a></div>
         <div class="brands">
           @for (brand of brands; track brand.id) {
-            <a routerLink="/customer" [queryParams]="{ brand: brand.id }">{{ brand.name }} <span aria-hidden="true">→</span></a>
+            <a routerLink="/cricket" [queryParams]="{ brand: brand.id }">{{ brand.name }} <span aria-hidden="true">→</span></a>
           }
         </div>
       </section>
     }
   }
-  <section class="closing-banner"><div><p>READY FOR YOUR NEXT GAME?</p><h2>Find gear that keeps you moving.</h2></div><a routerLink="/customer">Explore the catalog →</a></section>
+  <section class="closing-banner"><div><p>READY FOR YOUR NEXT GAME?</p><h2>Find gear that keeps you moving.</h2></div><a routerLink="/cricket">Explore the catalog →</a></section>
 </main>
 <app-storefront-footer />

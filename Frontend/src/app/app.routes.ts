@@ -18,6 +18,10 @@ export const routes: Routes = [
   },
   {
     path: 'customer',
+    redirectTo: 'cricket',
+  },
+  {
+    path: 'cricket',
     loadChildren: () =>
       import('./modules/customer/customer.routes').then(
         (routes) => routes.CUSTOMER_ROUTES,

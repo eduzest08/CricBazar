@@ -1,11 +1,11 @@
 <app-storefront-header [(searchValue)]="searchTerm" (searchSubmit)="search()" />
 <main class="product-main">
-  <nav class="breadcrumb" aria-label="Breadcrumb"><a routerLink="/">Home</a><span>/</span><a routerLink="/customer">Cricket</a>@if (product) { <span>/</span><strong>{{ product.name }}</strong> }</nav>
+  <nav class="breadcrumb" aria-label="Breadcrumb"><a routerLink="/">Home</a><span>/</span><a routerLink="/cricket">Cricket</a>@if (product) { <span>/</span><strong>{{ product.name }}</strong> }</nav>
 
   @if (loading) {
     <p class="notice" role="status">Loading product...</p>
   } @else if (notFound) {
-    <div class="notice"><h1>Product not found</h1><p>This product is unavailable.</p><a routerLink="/customer">Browse cricket gear</a></div>
+    <div class="notice"><h1>Product not found</h1><p>This product is unavailable.</p><a routerLink="/cricket">Browse cricket gear</a></div>
   } @else if (error) {
     <div class="notice error" role="alert">{{ error }} <button type="button" (click)="load()">Try again</button></div>
   } @else if (product; as item) {
@@ -52,27 +52,65 @@
           <p>Shipping estimates and delivery checks will be available when online ordering is launched.</p>
         </section>
 
-        <div class="ordering" aria-describedby="ordering-notice">
+        <div class="ordering">
           <label for="product-quantity">Qty:</label>
-          <input id="product-quantity" type="number" value="1" disabled />
-          <p id="ordering-notice">Online ordering is coming soon.</p>
+          <input id="product-quantity" type="number" min="1" [max]="item.stock" [(ngModel)]="quantity" [disabled]="item.stock <= 0" />
+          <p id="ordering-notice">Checkout and shipping are not available yet.</p>
           <button type="button" class="buy-button" disabled>Buy now <span>— Coming soon</span></button>
-          <button type="button" class="cart-button" disabled>Add to cart <span>— Coming soon</span></button>
+          <button type="button" class="cart-button" [disabled]="item.stock <= 0" (click)="addToCart()">
+            {{ item.stock > 0 ? 'Add to cart' : 'Out of stock' }}
+          </button>
+          @if (cartMessage) { <p class="cart-message" role="status">{{ cartMessage }}</p> }
         </div>
-        <a class="browse-link" routerLink="/customer">Continue shopping</a>
+        <a class="browse-link" routerLink="/cricket">Continue shopping</a>
       </section>
     </div>
-    @if (detailsError) { <div class="notice error" role="alert">Could not load product images and specifications: {{ detailsError }} <button type="button" (click)="loadDetails()">Try again</button></div> }
     @if (item.description || attributes.length) {
       <section class="details" aria-labelledby="details-title">
         <h2 id="details-title">Product details</h2>
-        @if (item.description) { <p class="description">{{ item.description }}</p> }
+        @if (item.description) { <div class="description" [innerHTML]="item.description"></div> }
         @if (attributes.length) {
           <h3>Specifications</h3>
           <dl>@for (attribute of attributes; track attribute.id) { <div><dt>{{ attribute.name }}</dt><dd>{{ attribute.value }}</dd></div> }</dl>
         }
       </section>
     }
+    @if (detailsError) { <div class="notice error" role="alert">Could not load product images and specifications: {{ detailsError }} <button type="button" (click)="loadDetails()">Try again</button></div> }
+    <section class="related-products" aria-labelledby="related-products-title">
+      <h2 id="related-products-title">Related products</h2>
+      @if (relatedLoading) {
+        <p class="related-status" role="status">Loading related products...</p>
+      } @else if (relatedError) {
+        <div class="notice error" role="alert">Could not load related products: {{ relatedError }} <button type="button" (click)="loadRelatedProducts()">Try again</button></div>
+      } @else if (relatedProducts.length) {
+        @if (relatedImageError) { <p class="error" role="alert">{{ relatedImageError }} <button type="button" class="related-retry" (click)="loadRelatedProducts()">Try again</button></p> }
+        <p class="related-cart-status" role="status" aria-live="polite">{{ relatedCartMessage }}</p>
+        <div class="related-grid">
+          @for (related of relatedProducts; track related.id) {
+            <article class="related-card">
+              <a class="related-image" [routerLink]="['/cricket/product', related.id]" [attr.aria-label]="'View details for ' + related.name">
+                @if (relatedImages.get(related.id) && !failedRelatedImages.has(related.id)) {
+                  <img [src]="relatedImages.get(related.id)" [alt]="related.name" (error)="failedRelatedImages.add(related.id)" />
+                } @else {
+                  <span>{{ relatedImagesLoading ? 'Loading image...' : 'Image unavailable' }}</span>
+                }
+              </a>
+              <div class="related-info">
+                <h3><a [routerLink]="['/cricket/product', related.id]">{{ related.name }}</a></h3>
+                <strong class="related-price">{{ related.salePrice | currency:'INR':'symbol':'1.0-2' }}</strong>
+                <span class="related-stock">{{ related.stock > 0 ? 'In stock' : 'Out of stock' }}</span>
+                <a class="related-link" [routerLink]="['/cricket/product', related.id]">View details →</a>
+                <button class="related-cart-button" type="button" [disabled]="related.stock <= 0" (click)="addRelatedToCart(related)">
+                  {{ related.stock > 0 ? 'Add to cart' : 'Out of stock' }}
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      } @else {
+        <p class="related-status">No related products found.</p>
+      }
+    </section>
   }
 </main>
 <app-storefront-footer />

@@ -13,7 +13,7 @@ describe('customer home', () => {
     id, name: `Product ${id}`, slug: `product-${id}`, sku: `SKU-${id}`, categoryId, brandId,
     mrp: 1000, salePrice: id * 100, costPrice: 50, discountPct: 0, shortDesc: null,
     description: null, stock: 5, avgRating: 0, reviewCount: 0, salesCount: 0, sortOrder: 0,
-    metaTitle: null, metaDesc: null, isActive: true, createdAt: `2026-01-0${id}`,
+    metaTitle: null, metaDesc: null, isActive: true, hasImage: true, isPublished: true, createdAt: `2026-01-0${id}`,
     updatedAt: '', createdBy: null,
   });
   const api = {
@@ -45,9 +45,9 @@ describe('customer home', () => {
       providers: [
         provideRouter([
           { path: '', pathMatch: 'full', component: StorefrontHomeComponent },
-          { path: 'customer', component: StorefrontPlaceholderComponent },
-          { path: 'customer/category/:id', component: StorefrontPlaceholderComponent },
-          { path: 'customer/product/:id', component: StorefrontProductComponent },
+          { path: 'cricket', component: StorefrontPlaceholderComponent },
+          { path: 'cricket/category/:id', component: StorefrontPlaceholderComponent },
+          { path: 'cricket/product/:id', component: StorefrontProductComponent },
         ]),
         { provide: CatalogApiService, useValue: api },
       ],
@@ -58,12 +58,22 @@ describe('customer home', () => {
     const harness = await RouterTestingHarness.create('/');
     harness.detectChanges();
     const element = harness.routeNativeElement as HTMLElement;
-    expect(api.getProducts).toHaveBeenCalledWith('', 1, 8, 'bestselling', true);
+    expect(api.getProducts).toHaveBeenCalledWith('', 1, 8, 'bestselling', true, undefined, true, true);
     expect(element.querySelectorAll('.category-card')).toHaveLength(2);
     expect(element.querySelectorAll('.brands a')).toHaveLength(2);
     expect(element.querySelectorAll('.product-card')).toHaveLength(2);
     expect(element.querySelector<HTMLImageElement>('.product-image img')?.src).toBe('http://api.test/image-1.png');
     expect(element.querySelector('app-storefront-footer footer')).not.toBeNull();
+  });
+
+  it('does not show products awaiting an image', async () => {
+    api.getProducts.mockReturnValue(of({
+      items: [product(1, 2, 1), { ...product(2, 3, 2), hasImage: false }],
+      totalCount: 2, pageNumber: 1, pageSize: 100,
+    }));
+    const harness = await RouterTestingHarness.create('/');
+    harness.detectChanges();
+    expect((harness.routeNativeElement as HTMLElement).querySelectorAll('.product-card')).toHaveLength(1);
   });
 
   it('opens the catalog with the selected parent category, including descendants', async () => {
@@ -80,7 +90,7 @@ describe('customer home', () => {
   });
 
   it('retains a subcategory link and indicates it in the main category filter', async () => {
-    const harness = await RouterTestingHarness.create('/customer?category=2');
+    const harness = await RouterTestingHarness.create('/cricket?category=2');
     harness.detectChanges();
     const element = harness.routeNativeElement as HTMLElement;
     expect(element.querySelector<HTMLInputElement>('.category-option input')?.checked).toBe(true);
@@ -97,7 +107,7 @@ describe('customer home', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
     expect((harness.routeNativeElement as HTMLElement).textContent).toContain('Product 1');
-    expect((harness.routeNativeElement as HTMLElement).querySelector('.active-filter')?.textContent).toContain('Brand A');
+    expect((harness.routeDebugElement!.componentInstance as StorefrontPlaceholderComponent).brandId).toBe(1);
     expect((harness.routeNativeElement as HTMLElement).querySelectorAll('.product-card')).toHaveLength(1);
     (harness.routeNativeElement as HTMLElement).querySelector<HTMLButtonElement>('.shopping-heading button')!.click();
     harness.detectChanges();
@@ -117,7 +127,10 @@ describe('customer home', () => {
     const element = harness.routeNativeElement as HTMLElement;
     const actions = element.querySelectorAll<HTMLButtonElement>('.header-actions button');
     expect(actions).toHaveLength(3);
-    expect([...actions].every(button => button.disabled && button.textContent?.includes('Coming soon'))).toBe(true);
+    expect(actions[0].disabled && actions[0].textContent?.includes('Coming soon')).toBe(true);
+    expect(actions[1].disabled && actions[1].textContent?.includes('Coming soon')).toBe(true);
+    expect(actions[2].disabled).toBe(false);
+    expect(actions[2].textContent).toContain('Your Cart (0)');
     const input = element.querySelector<HTMLInputElement>('#catalog-search')!;
     input.value = 'SKU-1';
     input.dispatchEvent(new Event('input'));

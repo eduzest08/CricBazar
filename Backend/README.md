@@ -62,6 +62,12 @@ Run SQL schema:
 sqlcmd -S YOUR_SERVER -i Database/Schema.sql
 ```
 
+For an existing database, apply [the product publication migration](../Database/migrations/20261108_product_publication.sql)
+before starting the updated API. It preserves existing active products with images.
+New products require an image and an explicit activation in the admin product list,
+details popup, or Product Image list before appearing in the storefront. Removing the last image
+returns a product to Progress and requires activation again.
+
 ### 2. Run API
 
 ```bash

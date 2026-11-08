@@ -6,6 +6,22 @@ import { ProductPayload } from '../models/catalog.models';
 import { CatalogApiService } from './catalog-api.service';
 
 describe('CatalogApiService product creation', () => {
+  it('requests products filtered by category when provided', () => {
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    const api = TestBed.inject(CatalogApiService);
+    const http = TestBed.inject(HttpTestingController);
+    api.getProducts('', 2, 100, 'newest', true, 7, true, true).subscribe();
+    const request = http.expectOne(req => req.method === 'GET' && req.url.endsWith('/products'));
+    expect(request.request.params.get('categoryId')).toBe('7');
+    expect(request.request.params.get('hasImage')).toBe('true');
+    expect(request.request.params.get('publishedOnly')).toBe('true');
+    expect(request.request.params.get('pageNumber')).toBe('2');
+    request.flush({ items: [], pageNumber: 2, pageSize: 100, totalCount: 0 });
+    http.verify();
+  });
+
   it('sends the demo login ID only when creating a product', () => {
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -32,6 +48,9 @@ describe('CatalogApiService product creation', () => {
     api.getProduct(1).subscribe();
     const get = http.expectOne((request) => request.method === 'GET' && request.url.endsWith('/products/1'));
     get.flush({});
+    api.activateProduct(1).subscribe();
+    const activate = http.expectOne((request) => request.method === 'POST' && request.url.endsWith('/products/1/activate'));
+    activate.flush(null);
     api.deleteProductPermanently(1).subscribe();
     const permanent = http.expectOne((request) => request.method === 'DELETE' && request.url.endsWith('/products/1/permanent'));
     permanent.flush(null);

@@ -1,6 +1,8 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CurrencyPipe, DatePipe, PercentPipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { EMPTY, Subscription, expand, reduce } from 'rxjs';
 import { CatalogApiService } from '../../../core/services/catalog-api.service';
 import { getApiErrorMessage } from '../../../core/utils/api-error';
@@ -14,6 +16,7 @@ import {
   ProductImage,
   ProductPayload,
   ProductSortField,
+  productStatus,
 } from '../../../core/models/catalog.models';
 
 function emptyProductDraft(): ProductDraft {
@@ -55,11 +58,12 @@ interface CategoryOption {
 
 @Component({
   selector: 'app-product-management',
-  imports: [CurrencyPipe, DatePipe, PercentPipe, FormsModule, RichTextEditorComponent, ActionIconComponent],
+  imports: [CurrencyPipe, DatePipe, PercentPipe, FormsModule, RouterLink, RichTextEditorComponent, ActionIconComponent],
   templateUrl: './product-management.component.html',
   styleUrl: './product-management.component.scss',
 })
 export class ProductManagementComponent implements OnInit, OnDestroy {
+  readonly productStatus = productStatus;
   private readonly api = inject(CatalogApiService);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private viewerSubscription?: Subscription;
@@ -238,6 +242,10 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
   viewerLoading = false;
   viewerError = '';
   viewerFailedImages = new Set<number>();
+  activatingId: number | null = null;
+  activationError = '';
+  activationNeedsImage = false;
+  activationMessage = '';
 
   get viewerProfit(): number | null {
     const product = this.viewerProduct;
@@ -269,6 +277,9 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
     this.viewerImages = [];
     this.viewerIndex = 0;
     this.viewerError = '';
+    this.activationError = '';
+    this.activationNeedsImage = false;
+    this.activationMessage = '';
     this.viewerFailedImages.clear();
     this.viewerLoading = true;
     const fetchPage = (pageNumber: number) =>
@@ -376,6 +387,31 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
     this.loadProducts();
   }
 
+  activate(product: Product): void {
+    if (this.activatingId !== null) return;
+    this.activationError = '';
+    this.activationNeedsImage = false;
+    this.activationMessage = '';
+    this.activatingId = product.id;
+    this.api.activateProduct(product.id).subscribe({
+      next: () => {
+        this.activatingId = null;
+        this.activationMessage = `${product.name} is active.`;
+        if (this.viewerProduct?.id === product.id) {
+          this.viewerProduct = { ...this.viewerProduct, isActive: true, isPublished: true, hasImage: true };
+        }
+        this.loadProducts();
+        this.changeDetector.markForCheck();
+      },
+      error: (error: unknown) => {
+        this.activatingId = null;
+        this.activationError = getApiErrorMessage(error);
+        this.activationNeedsImage = error instanceof HttpErrorResponse && error.status === 409;
+        this.changeDetector.markForCheck();
+      },
+    });
+  }
+
   restore(product: Product): void {
     this.errorMessage = '';
     this.successMessage = '';
@@ -397,7 +433,7 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
     };
     this.api.updateProduct(product.id, payload).subscribe({
       next: () => {
-        this.successMessage = 'Product restored to Active.';
+        this.successMessage = 'Product restored to Progress. Add an image and activate it to show it in the storefront.';
         this.loadProducts();
         this.changeDetector.markForCheck();
       },

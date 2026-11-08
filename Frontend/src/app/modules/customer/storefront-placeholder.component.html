@@ -1,14 +1,14 @@
 <app-storefront-header [(searchValue)]="searchInput" (searchSubmit)="search()" />
 
 <main class="store-main">
-  <nav class="breadcrumb" aria-label="Breadcrumb"><a routerLink="/">Home</a><span>/</span>@if (isCategoryPage) { <a routerLink="/customer">Cricket</a><span>/</span><strong>{{ categoryPage?.name || 'Category' }}</strong> } @else { <strong>Cricket</strong> }</nav>
+  <nav class="breadcrumb" aria-label="Breadcrumb"><a routerLink="/">Home</a><span>/</span>@if (isCategoryPage) { <a routerLink="/cricket">Cricket</a><span>/</span><strong>{{ categoryPage?.name || 'Category' }}</strong> } @else { <strong>Cricket</strong> }</nav>
   <div class="page-title"><div><p>THE CRICKET COLLECTION</p><h1>{{ isCategoryPage ? (categoryPage?.name || 'Category') : 'Cricket gear' }}</h1></div><span>Made for every innings.</span></div>
   @if (loading) {
     <p class="notice" role="status">Loading products...</p>
   } @else if (error) {
     <div class="notice error" role="alert">{{ error }} <button type="button" (click)="loadCatalog()">Try again</button></div>
   } @else if (isCategoryPage && !categoryPage) {
-    <div class="notice" role="alert"><strong>Category not found</strong><p>This category is unavailable.</p><a routerLink="/customer">Browse all cricket gear</a></div>
+    <div class="notice" role="alert"><strong>Category not found</strong><p>This category is unavailable.</p><a routerLink="/cricket">Browse all cricket gear</a></div>
   } @else {
     <div class="mobile-filter"><button type="button" (click)="filterOpen = !filterOpen" [attr.aria-expanded]="filterOpen" aria-controls="catalog-filters">☰ Filters</button><span>{{ firstItem }}–{{ lastItem }} of {{ filteredProducts.length }} items</span></div>
     <div class="catalog-layout">
@@ -65,7 +65,7 @@
           <div class="product-grid" [class.list-view]="view === 'list'">
             @for (product of visibleProducts; track product.id) {
               <article class="product-card">
-                <a class="product-image" [routerLink]="['/customer/product', product.id]" [attr.aria-label]="'View details for ' + product.name">
+                <a class="product-image" [routerLink]="['/cricket/product', product.id]" [attr.aria-label]="'View details for ' + product.name">
                   @if (images.get(product.id) && !failedImages.has(product.id)) {
                     <img [src]="images.get(product.id)" [alt]="product.name" (error)="imageFailed(product.id)" />
                   } @else {
@@ -74,12 +74,16 @@
                   @if (discount(product)) { <span class="discount">{{ discount(product) }}% OFF</span> }
                 </a>
                 <div class="product-info">
-                  <h2><a [routerLink]="['/customer/product', product.id]">{{ product.name }}</a></h2>
+                  <h2><a [routerLink]="['/cricket/product', product.id]">{{ product.name }}</a></h2>
                   @if (product.shortDesc) { <p class="description">{{ product.shortDesc }}</p> }
                   <div class="price"><strong>{{ product.salePrice | currency:'INR':'symbol':'1.0-2' }}</strong>@if (discount(product)) { <del>{{ product.mrp | currency:'INR':'symbol':'1.0-2' }}</del> }</div>
                   @if (product.reviewCount > 0) { <div class="rating">★ {{ product.avgRating | number:'1.1-1' }} <span>({{ product.reviewCount }} reviews)</span></div> }
                   <span class="availability">{{ product.stock > 0 ? 'In stock' : 'Out of stock' }}</span>
-                  <a class="product-link" [routerLink]="['/customer/product', product.id]">View details →</a>
+                  <a class="product-link" [routerLink]="['/cricket/product', product.id]">View details →</a>
+                  <p class="cart-message" role="status">{{ cartMessageProductId === product.id ? cartMessage : '' }}</p>
+                  <button class="add-to-cart" type="button" [disabled]="product.stock <= 0" (click)="addToCart(product)">
+                    {{ product.stock > 0 ? 'Add to cart' : 'Out of stock' }}
+                  </button>
                 </div>
               </article>
             }

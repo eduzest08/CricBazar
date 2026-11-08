@@ -8,7 +8,7 @@ const product: Product = {
   id: 1, name: '=Formula text', slug: 'bat', sku: 'CB-1', categoryId: 1, brandId: 2,
   mrp: 100, salePrice: 80, costPrice: 40, discountPct: 20,
   shortDesc: 'Short', description: '<p>Details</p>', stock: 5, avgRating: 4, reviewCount: 2,
-  salesCount: 3, sortOrder: 1, metaTitle: 'Title', metaDesc: 'Meta', isActive: true,
+  salesCount: 3, sortOrder: 1, metaTitle: 'Title', metaDesc: 'Meta', isActive: true, hasImage: true, isPublished: true,
   createdAt: '2026-01-02T03:04:05Z', updatedAt: '2026-02-03T04:05:06Z', createdBy: 'admin',
 };
 const png = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC'), c => c.charCodeAt(0));

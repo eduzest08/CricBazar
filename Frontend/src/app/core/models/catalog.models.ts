@@ -19,9 +19,15 @@ export interface Product {
   metaTitle: string | null;
   metaDesc: string | null;
   isActive: boolean;
+  hasImage: boolean;
+  isPublished: boolean;
   createdAt: string;
   updatedAt: string;
   createdBy: string | null;
+}
+
+export function productStatus(product: Product): 'Active' | 'Inactive' | 'Progress' {
+  return !product.isActive ? 'Inactive' : product.hasImage && product.isPublished ? 'Active' : 'Progress';
 }
 
 export interface ProductDraft {
@@ -180,6 +186,7 @@ export interface ProductImage {
   id: number;
   productId: number;
   productName: string;
+  productIsPublished: boolean;
   url: string;
   sortOrder: number;
 }

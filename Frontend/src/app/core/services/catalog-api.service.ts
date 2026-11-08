@@ -39,6 +39,9 @@ export class CatalogApiService {
     pageSize = 20,
     sortBy = 'newest',
     isActive = true,
+    categoryId?: number,
+    hasImage?: boolean,
+    publishedOnly = false,
   ): Observable<PaginatedResponse<Product>> {
     let params = new HttpParams()
       .set('pageNumber', pageNumber)
@@ -48,6 +51,15 @@ export class CatalogApiService {
     if (searchTerm.trim()) {
       params = params.set('searchTerm', searchTerm.trim());
     }
+    if (categoryId !== undefined) {
+      params = params.set('categoryId', categoryId);
+    }
+    if (hasImage !== undefined) {
+      params = params.set('hasImage', hasImage);
+    }
+    if (publishedOnly) {
+      params = params.set('publishedOnly', true);
+    }
 
     return this.http.get<PaginatedResponse<Product>>(`${this.baseUrl}/products`, {
       params,
@@ -56,6 +68,10 @@ export class CatalogApiService {
 
   getProduct(id: number): Observable<Product> {
     return this.http.get<Product>(`${this.baseUrl}/products/${id}`);
+  }
+
+  activateProduct(id: number): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/products/${id}/activate`, null);
   }
 
   createProduct(product: ProductPayload): Observable<Product> {

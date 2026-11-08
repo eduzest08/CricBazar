@@ -10,6 +10,8 @@ public enum PermanentProductDeleteResult
     HasOrderHistory
 }
 
+public enum ActivateProductResult { Activated, NotFound, MissingImage }
+
 public interface IProductRepository
 {
     Task<Product?> GetByIdAsync(int id);
@@ -19,11 +21,12 @@ public interface IProductRepository
     Task<bool> UpdateAsync(Product entity);
     Task<bool> DeleteAsync(int id);
     Task<PermanentProductDeleteResult> DeleteInactiveAsync(int id, CancellationToken cancellationToken);
+    Task<ActivateProductResult> ActivateAsync(int id, CancellationToken cancellationToken);
     Task<Product?> GetBySkuAsync(string sku);
     Task<Product?> GetBySlugAsync(string slug);
     Task<IEnumerable<Product>> GetByCategoryAsync(int categoryId);
     Task<IEnumerable<Product>> GetByBrandAsync(int brandId);
-    Task<(IEnumerable<Product> items, int totalCount)> SearchAsync(string? search = null, int? categoryId = null, int? brandId = null, decimal? minPrice = null, decimal? maxPrice = null, int pageNumber = 1, int pageSize = 20, string sortBy = "newest", bool isActive = true);
+    Task<(IEnumerable<Product> items, int totalCount)> SearchAsync(string? search = null, int? categoryId = null, int? brandId = null, decimal? minPrice = null, decimal? maxPrice = null, int pageNumber = 1, int pageSize = 20, string sortBy = "newest", bool isActive = true, bool? hasImage = null, bool publishedOnly = false);
 }
 
 public interface ICategoryRepository

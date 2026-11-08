@@ -265,6 +265,7 @@ public class ProductImagesController : ControllerBase
         Id = item.Id,
         ProductId = item.ProductId,
         ProductName = item.ProductName,
+        ProductIsPublished = item.ProductIsPublished,
         Url = item.Url,
         SortOrder = item.SortOrder
     };

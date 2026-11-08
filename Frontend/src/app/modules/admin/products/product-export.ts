@@ -1,5 +1,5 @@
 import { firstValueFrom } from 'rxjs';
-import { Brand, Category, Product } from '../../../core/models/catalog.models';
+import { Brand, Category, Product, productStatus } from '../../../core/models/catalog.models';
 import { CatalogApiService } from '../../../core/services/catalog-api.service';
 
 export interface ProductReport {
@@ -100,7 +100,7 @@ export async function createProductWorkbook(report: ProductReport): Promise<Blob
       ...product,
       brand: lookup.brands.get(product.brandId) ?? `#${product.brandId}`,
       category: lookup.categories.get(product.categoryId) ?? `#${product.categoryId}`,
-      status: product.isActive ? 'Active' : 'Inactive',
+      status: productStatus(product),
       profit: productProfit(product),
       margin: productMargin(product) ?? 'N/A',
     });
@@ -135,7 +135,7 @@ export async function createProductPdf(report: ProductReport): Promise<Blob> {
         lookup.brands.get(product.brandId) ?? `#${product.brandId}`,
         money(product.mrp), money(product.costPrice), money(product.salePrice),
         money(productProfit(product)), margin === null ? 'N/A' : `${(margin * 100).toFixed(2)}%`,
-        String(product.stock), product.isActive ? 'Active' : 'Inactive',
+        String(product.stock), productStatus(product),
       ];
     }),
     theme: 'grid',

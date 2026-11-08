@@ -43,6 +43,59 @@ public class ProductIntegrationTests : IClassFixture<ProductApiFactory>
     }
 
     [Fact]
+    public async Task ImagePresence_FiltersStorefrontAndTracksLastImage()
+    {
+        var (id, _, name) = await CreateAsync();
+        async Task<JsonElement> GetProduct() => await _client.GetFromJsonAsync<JsonElement>($"{Url}/{id}");
+        async Task<JsonElement> GetVisible() => await _client.GetFromJsonAsync<JsonElement>(
+            $"{Url}?searchTerm={Uri.EscapeDataString(name)}&hasImage=true&publishedOnly=true");
+
+        Assert.False((await GetProduct()).GetProperty("hasImage").GetBoolean());
+        Assert.Equal(0, (await GetVisible()).GetProperty("totalCount").GetInt32());
+        Assert.Equal(HttpStatusCode.Conflict, (await _client.PostAsync($"{Url}/{id}/activate", null)).StatusCode);
+
+        var imageResponse = await _client.PostAsJsonAsync("/api/v1/product-images",
+            new { productId = id, url = "https://example.com/image.jpg", sortOrder = 0 });
+        Assert.Equal(HttpStatusCode.Created, imageResponse.StatusCode);
+        var image = await imageResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(image.GetProperty("productIsPublished").GetBoolean());
+        Assert.True((await GetProduct()).GetProperty("hasImage").GetBoolean());
+        Assert.Equal(0, (await GetVisible()).GetProperty("totalCount").GetInt32());
+        Assert.Equal(HttpStatusCode.NoContent, (await _client.PostAsync($"{Url}/{id}/activate", null)).StatusCode);
+        var imageAfterActivation = await _client.GetFromJsonAsync<JsonElement>($"/api/v1/product-images/{image.GetProperty("id").GetInt32()}");
+        Assert.True(imageAfterActivation.GetProperty("productIsPublished").GetBoolean());
+        Assert.Equal(1, (await GetVisible()).GetProperty("totalCount").GetInt32());
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await _client.DeleteAsync($"/api/v1/product-images/{image.GetProperty("id").GetInt32()}")).StatusCode);
+        Assert.False((await GetProduct()).GetProperty("hasImage").GetBoolean());
+        Assert.False((await GetProduct()).GetProperty("isPublished").GetBoolean());
+        Assert.Equal(0, (await GetVisible()).GetProperty("totalCount").GetInt32());
+
+        imageResponse = await _client.PostAsJsonAsync("/api/v1/product-images",
+            new { productId = id, url = "https://example.com/image.jpg", sortOrder = 0 });
+        Assert.Equal(HttpStatusCode.Created, imageResponse.StatusCode);
+        image = await imageResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(0, (await GetVisible()).GetProperty("totalCount").GetInt32());
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await _client.DeleteAsync($"/api/v1/product-images/{image.GetProperty("id").GetInt32()}")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await _client.DeleteAsync($"{Url}/{id}")).StatusCode);
+        imageResponse = await _client.PostAsJsonAsync("/api/v1/product-images",
+            new { productId = id, url = "https://example.com/image.jpg", sortOrder = 0 });
+        Assert.Equal(HttpStatusCode.Created, imageResponse.StatusCode);
+        image = await imageResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var inactiveProduct = await GetProduct();
+        Assert.True(inactiveProduct.GetProperty("hasImage").GetBoolean());
+        Assert.False(inactiveProduct.GetProperty("isActive").GetBoolean());
+        Assert.Equal(0, (await GetVisible()).GetProperty("totalCount").GetInt32());
+        Assert.Equal(HttpStatusCode.NoContent, (await _client.PostAsync($"{Url}/{id}/activate", null)).StatusCode);
+        Assert.Equal(1, (await GetVisible()).GetProperty("totalCount").GetInt32());
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await _client.DeleteAsync($"/api/v1/product-images/{image.GetProperty("id").GetInt32()}")).StatusCode);
+    }
+
+    [Fact]
     public async Task Create_ValidProduct_ReturnsCreatedWithLocationAndBody()
     {
         var u = Uniq();

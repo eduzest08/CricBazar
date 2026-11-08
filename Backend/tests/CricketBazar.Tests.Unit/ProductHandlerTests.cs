@@ -60,7 +60,7 @@ public class ProductHandlerTests
     public async Task GetList_ForwardsFilters_AndBuildsPagedResponse()
     {
         var products = new List<Product> { NewProduct(), NewProduct(2) };
-        _repo.Setup(r => r.SearchAsync("bat", 3, 4, 10m, 500m, 2, 5, "price_asc"))
+        _repo.Setup(r => r.SearchAsync("bat", 3, 4, 10m, 500m, 2, 5, "price_asc", true, true, true))
             .ReturnsAsync(((IEnumerable<Product>)products, 12));
         _mapper.Setup(m => m.Map<List<ProductDto>>(It.IsAny<IEnumerable<Product>>()))
             .Returns(new List<ProductDto> { NewDto(), NewDto(2) });
@@ -68,7 +68,7 @@ public class ProductHandlerTests
         var query = new GetProductsListQuery
         {
             SearchTerm = "bat", CategoryId = 3, BrandId = 4, MinPrice = 10m, MaxPrice = 500m,
-            PageNumber = 2, PageSize = 5, SortBy = "price_asc"
+            PageNumber = 2, PageSize = 5, SortBy = "price_asc", HasImage = true, PublishedOnly = true
         };
         var result = await new GetProductsListQueryHandler(_repo.Object, _mapper.Object).Handle(query, CancellationToken.None);
 

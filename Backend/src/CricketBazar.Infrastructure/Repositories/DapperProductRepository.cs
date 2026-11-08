@@ -19,6 +19,26 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
     {
     }
 
+    public async Task<ActivateProductResult> ActivateAsync(int id, CancellationToken cancellationToken)
+    {
+        await using var connection = _connectionFactory.GetConnection();
+        await connection.OpenAsync(cancellationToken);
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var active = await connection.QuerySingleOrDefaultAsync<bool?>(new CommandDefinition(
+            "SELECT IsActive FROM dbo.Products WITH (UPDLOCK, HOLDLOCK) WHERE Id = @Id",
+            new { Id = id }, transaction, cancellationToken: cancellationToken));
+        if (active is null) return ActivateProductResult.NotFound;
+        var hasImage = await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+            "SELECT CAST(CASE WHEN EXISTS (SELECT 1 FROM dbo.ProductImages WHERE ProductId = @Id) THEN 1 ELSE 0 END AS bit)",
+            new { Id = id }, transaction, cancellationToken: cancellationToken));
+        if (!hasImage) return ActivateProductResult.MissingImage;
+        await connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE dbo.Products SET IsActive = 1, IsPublished = 1, UpdatedAt = SYSUTCDATETIME() WHERE Id = @Id",
+            new { Id = id }, transaction, cancellationToken: cancellationToken));
+        transaction.Commit();
+        return ActivateProductResult.Activated;
+    }
+
     public async Task<PermanentProductDeleteResult> DeleteInactiveAsync(int id, CancellationToken cancellationToken)
     {
         using var connection = _connectionFactory.GetConnection();
@@ -64,7 +84,8 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
     public async Task<Product?> GetByIdAsync(int id)
     {
         const string sql = @"
-            SELECT p.*, 
+            SELECT p.*,
+                   CAST(CASE WHEN EXISTS (SELECT 1 FROM dbo.ProductImages pi WHERE pi.ProductId = p.Id) THEN 1 ELSE 0 END AS bit) AS HasImage,
                    c.Id as CategoryId, c.Name as CategoryName, c.Slug as CategorySlug,
                    b.Id as BrandId, b.Name as BrandName
             FROM dbo.Products p
@@ -100,7 +121,7 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
     public async Task<Product?> GetBySlugAsync(string slug)
     {
         const string sql = @"
-            SELECT p.* 
+            SELECT p.*, CAST(CASE WHEN EXISTS (SELECT 1 FROM dbo.ProductImages pi WHERE pi.ProductId = p.Id) THEN 1 ELSE 0 END AS bit) AS HasImage
             FROM dbo.Products p
             WHERE p.Slug = @Slug AND p.IsActive = 1";
 
@@ -165,7 +186,9 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
         int pageNumber = 1,
         int pageSize = 10,
         string sortBy = "newest",
-        bool isActive = true)
+        bool isActive = true,
+        bool? hasImage = null,
+        bool publishedOnly = false)
     {
         if (pageNumber < 1) pageNumber = 1;
         if (pageSize < 1) pageSize = 10;
@@ -176,6 +199,13 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
         var whereConditions = new List<string> { "IsActive = @IsActive" };
         var parameters = new DynamicParameters();
         parameters.Add("@IsActive", isActive);
+        if (publishedOnly) whereConditions.Add("IsPublished = 1");
+        if (hasImage.HasValue)
+        {
+            whereConditions.Add(hasImage.Value
+                ? "EXISTS (SELECT 1 FROM dbo.ProductImages pi WHERE pi.ProductId = dbo.Products.Id)"
+                : "NOT EXISTS (SELECT 1 FROM dbo.ProductImages pi WHERE pi.ProductId = dbo.Products.Id)");
+        }
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -228,7 +258,7 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
 
         var countSql = $"SELECT COUNT(*) FROM {TableName} WHERE {whereClause}";
         var dataSql = $@"
-            SELECT * FROM {TableName} 
+            SELECT *, CAST(CASE WHEN EXISTS (SELECT 1 FROM dbo.ProductImages pi WHERE pi.ProductId = dbo.Products.Id) THEN 1 ELSE 0 END AS bit) AS HasImage FROM {TableName}
             WHERE {whereClause}
             {orderByClause}
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
@@ -309,7 +339,9 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
             SET Name = @Name, Slug = @Slug, Sku = @Sku, CategoryId = @CategoryId, BrandId = @BrandId, 
                 Mrp = @Mrp, SalePrice = @SalePrice, CostPrice = @CostPrice, ShortDesc = @ShortDesc, Description = @Description, 
                 Stock = @Stock, AvgRating = @AvgRating, ReviewCount = @ReviewCount, SalesCount = @SalesCount, 
-                SortOrder = @SortOrder, MetaTitle = @MetaTitle, MetaDesc = @MetaDesc, IsActive = @IsActive,
+                SortOrder = @SortOrder, MetaTitle = @MetaTitle, MetaDesc = @MetaDesc,
+                IsPublished = CASE WHEN @IsActive = 0 OR IsActive = 0 THEN 0 ELSE IsPublished END,
+                IsActive = @IsActive,
                 UpdatedAt = @UpdatedAt
             WHERE Id = @Id";
 

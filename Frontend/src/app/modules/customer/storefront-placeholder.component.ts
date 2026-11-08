@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { EMPTY, Subscription, catchError, combineLatest, expand, forkJoin, map, of, reduce, throwError } from 'rxjs';
 import { Brand, Category, Product, ProductImage } from '../../core/models/catalog.models';
 import { CatalogApiService } from '../../core/services/catalog-api.service';
+import { StorefrontCartService } from '../../core/services/storefront-cart.service';
 import { getApiErrorMessage } from '../../core/utils/api-error';
 import { StorefrontHeaderComponent } from './storefront-header.component';
 import { StorefrontFooterComponent } from './storefront-footer.component';
@@ -21,6 +22,7 @@ interface SubcategoryOption extends CategoryOption { rootId: number; depth: numb
 })
 export class StorefrontPlaceholderComponent implements OnInit, OnDestroy {
   private readonly api = inject(CatalogApiService);
+  readonly cart = inject(StorefrontCartService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly changeDetector = inject(ChangeDetectorRef);
@@ -40,6 +42,8 @@ export class StorefrontPlaceholderComponent implements OnInit, OnDestroy {
   imageLoading = false;
   error = '';
   imageError = '';
+  cartMessage = '';
+  cartMessageProductId: number | null = null;
   searchInput = '';
   searchTerm = '';
   selectedCategoryIds = new Set<number>();
@@ -91,7 +95,7 @@ export class StorefrontPlaceholderComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = '';
     this.imageError = '';
-    const fetchPage = (page: number) => this.api.getProducts('', page, 100, 'newest', true);
+    const fetchPage = (page: number) => this.api.getProducts('', page, 100, 'newest', true, undefined, true, true);
     const products = fetchPage(1).pipe(
       expand(result => {
         if (result.pageNumber * result.pageSize >= result.totalCount) return EMPTY;
@@ -108,7 +112,7 @@ export class StorefrontPlaceholderComponent implements OnInit, OnDestroy {
       brands: this.api.getBrands(),
     }).subscribe({
       next: ({ products, categories, brands }) => {
-        this.products = products.filter(product => product.isActive);
+        this.products = products.filter(product => product.isActive && product.hasImage && product.isPublished);
         const flattened = new Map<number, Category>();
         const visit = (items: Category[]) => items.forEach(item => {
           if (flattened.has(item.id)) return;
@@ -258,8 +262,18 @@ export class StorefrontPlaceholderComponent implements OnInit, OnDestroy {
   }
 
   search(): void { this.searchTerm = this.searchInput.trim(); this.filterChanged(); }
+  addToCart(product: Product): void {
+    const result = this.cart.add(product);
+    this.cartMessageProductId = product.id;
+    this.cartMessage = result === 'added'
+      ? `${product.name} added to cart.`
+      : result === 'out-of-stock'
+        ? `${product.name} is out of stock.`
+        : 'This quantity is unavailable.';
+    this.changeDetector.markForCheck();
+  }
   openCategory(id: number): void {
-    void this.router.navigate(['/customer/category', id]);
+    void this.router.navigate(['/cricket/category', id]);
   }
   filterChanged(): void { this.page = 1; this.loadImages(); }
   setCategorySelected(id: number, selected: boolean): void {

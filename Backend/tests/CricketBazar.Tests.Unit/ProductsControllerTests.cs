@@ -7,6 +7,7 @@ using CricketBazar.API.Controllers;
 using CricketBazar.Application.Commands.Products;
 using CricketBazar.Application.DTOs;
 using CricketBazar.Application.Queries.Products;
+using CricketBazar.Domain.Interfaces;
 
 namespace CricketBazar.Tests.Unit;
 
@@ -34,13 +35,13 @@ public class ProductsControllerTests
         };
         _mediator.Setup(m => m.Send(It.IsAny<GetProductsListQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync(page);
 
-        var result = await _controller.GetAll(2, 5, 3, 4, 10m, 500m, "bat", "price_asc");
+        var result = await _controller.GetAll(2, 5, 3, 4, 10m, 500m, "bat", "price_asc", true, true, true);
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         Assert.Same(page, ok.Value);
         _mediator.Verify(m => m.Send(It.Is<GetProductsListQuery>(q =>
             q.PageNumber == 2 && q.PageSize == 5 && q.CategoryId == 3 && q.BrandId == 4 &&
-            q.MinPrice == 10m && q.MaxPrice == 500m && q.SearchTerm == "bat" && q.SortBy == "price_asc"),
+            q.MinPrice == 10m && q.MaxPrice == 500m && q.SearchTerm == "bat" && q.SortBy == "price_asc" && q.HasImage == true && q.PublishedOnly),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -54,6 +55,23 @@ public class ProductsControllerTests
 
         _mediator.Verify(m => m.Send(It.Is<GetProductsListQuery>(q =>
             q.PageNumber == 1 && q.PageSize == 20 && q.SortBy == "newest"), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(ActivateProductResult.Activated, 204)]
+    [InlineData(ActivateProductResult.MissingImage, 409)]
+    [InlineData(ActivateProductResult.NotFound, 404)]
+    public async Task Activate_ReturnsAppropriateStatus(ActivateProductResult result, int status)
+    {
+        _mediator.Setup(m => m.Send(It.Is<ActivateProductCommand>(q => q.Id == 1), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
+        var response = await _controller.Activate(1, CancellationToken.None);
+        Assert.Equal(status, response switch
+        {
+            StatusCodeResult empty => empty.StatusCode,
+            ObjectResult body => body.StatusCode,
+            _ => null
+        });
     }
 
     [Fact]

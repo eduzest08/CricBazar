@@ -4,7 +4,7 @@
     <h1>Product Image</h1>
     <p>Manage images associated with products.</p>
   </div>
-  <button class="button button-primary" type="button" [disabled]="reordering" (click)="reset()">
+  <button class="button button-primary" type="button" [disabled]="reordering || saving" (click)="reset()">
     <span aria-hidden="true">＋</span> Add image
   </button>
 </div>
@@ -23,7 +23,7 @@
       <p>Product, image file, and display order</p>
     </div>
     @if (editingId !== null) {
-      <button class="text-button" type="button" (click)="reset()">Cancel edit</button>
+      <button class="text-button" type="button" [disabled]="saving" (click)="reset()">Cancel edit</button>
     }
   </div>
 
@@ -31,36 +31,62 @@
     <div class="form-grid">
       <label class="wide-field">
         <span class="field-label">Product <b>*</b></span>
-        <select [(ngModel)]="draft.productId" name="productId" required>
+        <select [(ngModel)]="draft.productId" (ngModelChange)="updateSortOrder($event)" name="productId" [disabled]="saving" required>
           <option [ngValue]="null" disabled>Select product</option>
           @for (product of products; track product.id) {
-            <option [ngValue]="product.id">{{ product.name }}</option>
+            <option [ngValue]="product.id">{{ product.name }} ({{ imageCounts.get(product.id) ?? (imageCountsLoading ? '…' : '?') }})</option>
           }
         </select>
       </label>
+      @if (imageCountsError) {
+        <div class="wide-field alert alert-error" role="alert">
+          {{ imageCountsError }}
+          <button class="text-button" type="button" (click)="loadImageCounts()">Retry</button>
+        </div>
+      }
       <label>
         <span class="field-label">Sort order</span>
-        <input [(ngModel)]="draft.sortOrder" name="sortOrder" type="number" min="0" step="1" />
+        <input [(ngModel)]="draft.sortOrder" name="sortOrder" type="number" min="0" step="1" [disabled]="saving || sortOrderLoading || !!sortOrderError" />
       </label>
+      @if (sortOrderLoading) {
+        <span class="form-note" role="status">Loading sort order…</span>
+      }
+      @if (sortOrderError) {
+        <div class="wide-field alert alert-error" role="alert">
+          {{ sortOrderError }}
+          <button class="text-button" type="button" (click)="updateSortOrder(draft.productId)">Retry</button>
+        </div>
+      }
       <div class="wide-field logo-upload">
         <span class="field-label">Image <b>*</b></span>
         <div class="logo-upload-row">
-          @if (previewUrl) {
+          @if (editingId !== null && previewUrl) {
             <img class="image-preview" [src]="previewUrl" alt="Image preview" />
-          } @else {
+          } @else if (editingId !== null || !selectedImages.length) {
             <span class="image-preview image-empty">No image</span>
           }
-          <input #fileInput type="file" name="imageFile" accept="image/png,image/jpeg,image/gif,image/webp" (change)="onFileSelected($event)" />
-          @if (previewUrl) {
-            <button class="text-button danger-text" type="button" (click)="removeImage(fileInput)">Remove</button>
+          <input #fileInput type="file" name="imageFile" accept="image/png,image/jpeg,image/gif,image/webp" [multiple]="editingId === null" [disabled]="saving" (change)="onFileSelected($event)" />
+          @if (editingId !== null && previewUrl) {
+            <button class="text-button danger-text" type="button" [disabled]="saving" (click)="removeImage(fileInput)">Remove</button>
           }
         </div>
+        @if (selectedImages.length) {
+          <div class="selected-previews">
+            @for (image of selectedImages; track image; let i = $index) {
+              <div class="selected-preview">
+                <img class="image-preview" [src]="image.previewUrl" [alt]="'Preview of ' + image.file.name" />
+                <span>{{ image.file.name }}</span>
+                <button class="text-button danger-text" type="button" [disabled]="saving" [attr.aria-label]="'Remove ' + image.file.name" (click)="removeSelectedImage(i)">Remove</button>
+              </div>
+            }
+          </div>
+        }
         <small class="form-note">PNG, JPG, GIF or WEBP, up to 5 MB.</small>
       </div>
     </div>
     <div class="form-footer">
       <span class="form-note">Lower sort orders are shown first.</span>
-      <button class="button button-primary" type="submit" [disabled]="imageForm.invalid || saving">
+      <button class="button button-primary" type="submit" [disabled]="imageForm.invalid || saving || sortOrderLoading || !!sortOrderError">
         {{ saving ? 'Saving…' : editingId === null ? 'Add image' : 'Save changes' }}
       </button>
     </div>
@@ -175,13 +201,21 @@
                     [attr.aria-label]="(isExpanded(group.productId) ? 'Collapse ' : 'Expand ') + group.productName + ' images'"
                     (click)="toggleGroup(group.productId)">{{ isExpanded(group.productId) ? '−' : '+' }}</button>
                   <span><strong>{{ group.productName }}</strong><small>{{ group.images.length }} images</small></span>
+                  @if (activeTab === 'inactive' || !group.images[0].productIsPublished) {
+                    <button class="button button-secondary" type="button" [disabled]="activatingId !== null || reordering || saving"
+                      [attr.aria-label]="'Activate ' + group.productName" (click)="activate(group)">
+                      {{ activatingId === group.productId ? 'Activating…' : 'Activate' }}
+                    </button>
+                  } @else {
+                    <span class="status-pill">Active</span>
+                  }
                 </div>
               </td>
               <td></td><td></td>
               <td class="actions">
                 <button class="icon-button" type="button" title="View product images" aria-haspopup="dialog" [attr.aria-label]="'View images for ' + group.productName" (click)="previewInViewer(group.images[0]); imageViewer.showModal()"><app-action-icon name="view" /></button>
-                <button class="icon-button" type="button" title="Edit main image" [disabled]="reordering" [attr.aria-label]="'Edit main image for ' + group.productName" (click)="edit(group.images[0])"><app-action-icon name="edit" /></button>
-                <button class="icon-button danger-text" type="button" title="Delete main image" [disabled]="reordering" [attr.aria-label]="'Delete main image for ' + group.productName" (click)="delete(group.images[0])"><app-action-icon name="delete" /></button>
+                <button class="icon-button" type="button" title="Edit main image" [disabled]="reordering || saving" [attr.aria-label]="'Edit main image for ' + group.productName" (click)="edit(group.images[0])"><app-action-icon name="edit" /></button>
+                <button class="icon-button danger-text" type="button" title="Delete main image" [disabled]="reordering || saving" [attr.aria-label]="'Delete main image for ' + group.productName" (click)="delete(group.images[0])"><app-action-icon name="delete" /></button>
               </td>
             </tr>
             @if (isExpanded(group.productId)) {
@@ -202,8 +236,8 @@
                   <td><img class="image-thumb" [src]="api.resolveAssetUrl(image.url)" [alt]="image.productName + ' image'" /></td>
                   <td>{{ image.sortOrder }}</td>
                   <td class="actions">
-                    <button class="icon-button" type="button" title="Edit" [disabled]="reordering" [attr.aria-label]="'Edit image ' + image.id + ' for ' + image.productName" (click)="edit(image)"><app-action-icon name="edit" /></button>
-                    <button class="icon-button danger-text" type="button" title="Delete" [disabled]="reordering" [attr.aria-label]="'Delete image ' + image.id + ' for ' + image.productName" (click)="delete(image)"><app-action-icon name="delete" /></button>
+                    <button class="icon-button" type="button" title="Edit" [disabled]="reordering || saving" [attr.aria-label]="'Edit image ' + image.id + ' for ' + image.productName" (click)="edit(image)"><app-action-icon name="edit" /></button>
+                    <button class="icon-button danger-text" type="button" title="Delete" [disabled]="reordering || saving" [attr.aria-label]="'Delete image ' + image.id + ' for ' + image.productName" (click)="delete(image)"><app-action-icon name="delete" /></button>
                   </td>
                 </tr>
               }

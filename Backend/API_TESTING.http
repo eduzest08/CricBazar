@@ -40,6 +40,15 @@ GET {{baseUrl}}/products?pageNumber=1&pageSize=20
 ### Get All Products with Filters
 GET {{baseUrl}}/products?pageNumber=1&pageSize=20&categoryId=1&sortBy=newest
 
+### Storefront products (active and with at least one image)
+GET {{baseUrl}}/products?pageNumber=1&pageSize=20&isActive=true&hasImage=true&publishedOnly=true
+
+### Manually activate a product with at least one image (409 if missing an image)
+POST {{baseUrl}}/products/{{productId}}/activate
+
+### Enabled products awaiting an image
+GET {{baseUrl}}/products?pageNumber=1&pageSize=20&isActive=true&hasImage=false
+
 ### Get Product by ID
 GET {{baseUrl}}/products/{{productId}}
 

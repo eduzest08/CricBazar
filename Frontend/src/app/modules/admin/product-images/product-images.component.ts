@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
-import { EMPTY, Observable, Subscription, expand, map, of, reduce } from 'rxjs';
+import { EMPTY, Observable, Subscription, concatMap, expand, forkJoin, from, map, mergeMap, of, reduce, tap } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { CatalogApiService } from '../../../core/services/catalog-api.service';
 import {
@@ -22,6 +22,12 @@ interface ImageGroup {
   images: ProductImage[];
 }
 
+interface SelectedImage {
+  file: File;
+  previewUrl: string;
+  uploadedUrl?: string;
+}
+
 @Component({
   selector: 'app-product-images',
   imports: [FormsModule, ActionIconComponent],
@@ -32,6 +38,8 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
   private readonly changeDetector = inject(ChangeDetectorRef);
   private viewerSubscription?: Subscription;
   private listSubscription?: Subscription;
+  private sortOrderSubscription?: Subscription;
+  private imageCountsSubscription?: Subscription;
   private readonly expandedProducts = new Set<number>();
 
   readonly pageSizeOptions = [5, 10, 25, 50];
@@ -39,6 +47,9 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
 
   images: ProductImage[] = [];
   products: Product[] = [];
+  imageCounts = new Map<number, number>();
+  imageCountsLoading = false;
+  imageCountsError = '';
   pageNumber = 1;
   pageSize = 10;
   searchTerm = '';
@@ -47,6 +58,7 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
   reordering = false;
   draggingId: number | null = null;
   selectedFile: File | null = null;
+  selectedImages: SelectedImage[] = [];
   previewUrl = '';
   draft = emptyImageDraft();
   editingId: number | null = null;
@@ -54,6 +66,9 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
   filterProducts: Product[] = [];
   loading = false;
   saving = false;
+  sortOrderLoading = false;
+  sortOrderError = '';
+  activatingId: number | null = null;
   errorMessage = '';
   successMessage = '';
   imageToDelete: ProductImage | null = null;
@@ -87,6 +102,10 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.viewerSubscription?.unsubscribe();
     this.listSubscription?.unsubscribe();
+    this.sortOrderSubscription?.unsubscribe();
+    this.imageCountsSubscription?.unsubscribe();
+    this.clearSelectedImages();
+    if (this.previewUrl.startsWith('blob:')) URL.revokeObjectURL(this.previewUrl);
   }
 
   imageFailed(id: number): void {
@@ -153,6 +172,7 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
       next: (page) => {
         this.products = page.items;
         this.filterProducts = page.items;
+        this.loadImageCounts();
         this.changeDetector.markForCheck();
       },
       error: (error: unknown) => {
@@ -199,7 +219,57 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
     else this.expandedProducts.add(productId);
   }
 
+  activate(group: ImageGroup): void {
+    if (this.activatingId !== null) return;
+    this.activatingId = group.productId;
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.api.activateProduct(group.productId).subscribe({
+      next: () => {
+        this.activatingId = null;
+        this.successMessage = `${group.productName} is active.`;
+        this.loadImages();
+        this.changeDetector.markForCheck();
+      },
+      error: (error: unknown) => {
+        this.activatingId = null;
+        this.errorMessage = `Could not activate ${group.productName}: ${getApiErrorMessage(error)}`;
+        this.changeDetector.markForCheck();
+      },
+    });
+  }
+
   tabCounts = { active: 0, inactive: 0 };
+
+  loadImageCounts(): void {
+    this.imageCountsSubscription?.unsubscribe();
+    this.imageCounts = new Map();
+    this.imageCountsError = '';
+    this.imageCountsLoading = this.products.length > 0;
+    this.imageCountsSubscription = from(this.products).pipe(
+      mergeMap(product => this.api.getProductImages({
+        pageNumber: 1,
+        pageSize: 1,
+        searchTerm: '',
+        productId: product.id,
+        sortBy: 'id',
+        sortDirection: 'asc',
+        isActive: product.isActive,
+      }).pipe(map(page => ({ id: product.id, count: page.totalCount }))), 6),
+      reduce((counts, result) => counts.set(result.id, result.count), new Map<number, number>()),
+    ).subscribe({
+      next: counts => {
+        this.imageCounts = counts;
+        this.imageCountsLoading = false;
+        this.changeDetector.markForCheck();
+      },
+      error: (error: unknown) => {
+        this.imageCountsLoading = false;
+        this.imageCountsError = `Could not load product image counts: ${getApiErrorMessage(error)}`;
+        this.changeDetector.markForCheck();
+      },
+    });
+  }
 
   private loadTabCounts(): void {
     for (const isActive of [true, false]) {
@@ -224,6 +294,7 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
 
   loadImages(): void {
     this.listSubscription?.unsubscribe();
+    if (this.products.length) this.loadImageCounts();
     this.loading = true;
     this.errorMessage = '';
     this.loadTabCounts();
@@ -359,19 +430,33 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    if (!files.length) return;
     this.errorMessage = '';
-    if (file && !file.type.startsWith('image/')) {
+    if (files.some(file => !file.type.startsWith('image/'))) {
       this.errorMessage = 'Please choose an image file.';
-      input.value = '';
       return;
     }
-    if (file && file.size > MAX_IMAGE_BYTES) {
+    if (files.some(file => file.size > MAX_IMAGE_BYTES)) {
       this.errorMessage = 'Image must be 5 MB or smaller.';
-      input.value = '';
       return;
     }
-    this.setFile(file);
+    if (this.editingId !== null) {
+      this.setFile(files[0]);
+    } else {
+      this.selectedImages.push(...files.map(file => ({ file, previewUrl: URL.createObjectURL(file) })));
+    }
+  }
+
+  removeSelectedImage(index: number): void {
+    const [image] = this.selectedImages.splice(index, 1);
+    if (image) URL.revokeObjectURL(image.previewUrl);
+  }
+
+  private clearSelectedImages(): void {
+    for (const image of this.selectedImages) URL.revokeObjectURL(image.previewUrl);
+    this.selectedImages = [];
   }
 
   removeImage(fileInput: HTMLInputElement): void {
@@ -389,7 +474,46 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
     this.previewUrl = file ? URL.createObjectURL(file) : this.api.resolveAssetUrl(this.draft.url);
   }
 
+  updateSortOrder(productId: number | null): void {
+    this.sortOrderSubscription?.unsubscribe();
+    this.sortOrderLoading = false;
+    this.sortOrderError = '';
+    this.draft.sortOrder = 0;
+    if (productId === null) return;
+
+    this.sortOrderLoading = true;
+    const fetchImages = (isActive: boolean) => this.api.getProductImages({
+      pageNumber: 1,
+      pageSize: 2,
+      searchTerm: '',
+      productId,
+      sortBy: 'sortOrder',
+      sortDirection: 'desc',
+      isActive,
+    });
+    this.sortOrderSubscription = forkJoin([fetchImages(true), fetchImages(false)]).subscribe({
+      next: (pages) => {
+        const orders = pages.flatMap(page => page.items)
+          .filter(image => image.id !== this.editingId)
+          .map(image => image.sortOrder);
+        this.draft.sortOrder = orders.length ? Math.max(...orders) + 1 : 0;
+        this.sortOrderLoading = false;
+        this.changeDetector.markForCheck();
+      },
+      error: (error: unknown) => {
+        this.sortOrderLoading = false;
+        this.sortOrderError = `Could not determine the next sort order: ${getApiErrorMessage(error)}`;
+        this.changeDetector.markForCheck();
+      },
+    });
+  }
+
   edit(image: ProductImage): void {
+    if (this.saving) return;
+    this.clearSelectedImages();
+    this.sortOrderSubscription?.unsubscribe();
+    this.sortOrderLoading = false;
+    this.sortOrderError = '';
     this.editingId = image.id;
     this.draft = { productId: image.productId, url: image.url, sortOrder: image.sortOrder };
     this.errorMessage = '';
@@ -399,17 +523,23 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
   }
 
   reset(): void {
+    if (this.saving) return;
+    this.clearSelectedImages();
+    this.sortOrderSubscription?.unsubscribe();
+    this.sortOrderLoading = false;
+    this.sortOrderError = '';
     this.editingId = null;
     this.draft = emptyImageDraft();
     this.setFile(null);
   }
 
   save(): void {
+    if (this.saving || this.sortOrderLoading || this.sortOrderError) return;
     if (this.draft.productId === null) {
       this.errorMessage = 'Select a product.';
       return;
     }
-    if (!this.selectedFile && !this.draft.url) {
+    if (!this.selectedImages.length && !this.selectedFile && !this.draft.url) {
       this.errorMessage = 'Choose an image to upload.';
       return;
     }
@@ -418,6 +548,11 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
     this.successMessage = '';
 
+    if (this.editingId === null && this.selectedImages.length) {
+      this.saveSelectedImages(this.draft.productId);
+      return;
+    }
+
     const uploadStep: Observable<string> = this.selectedFile
       ? this.api.uploadProductImage(this.selectedFile).pipe(map((result) => result.url))
       : of(this.draft.url);
@@ -425,6 +560,47 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
     uploadStep.subscribe({
       next: (url) => this.persist(url),
       error: (error: unknown) => this.fail(error),
+    });
+  }
+
+  private saveSelectedImages(productId: number): void {
+    let saved = 0;
+    const total = this.selectedImages.length;
+    from([...this.selectedImages]).pipe(
+      concatMap(image => {
+        const upload = image.uploadedUrl
+          ? of(image.uploadedUrl)
+          : this.api.uploadProductImage(image.file).pipe(
+            map(result => result.url),
+            tap(url => image.uploadedUrl = url),
+          );
+        return upload.pipe(concatMap(url => this.api.createProductImage({
+          productId,
+          url,
+          sortOrder: Number(this.draft.sortOrder),
+        })), tap(() => {
+          saved++;
+          this.draft.sortOrder = Number(this.draft.sortOrder) + 1;
+          this.removeSelectedImage(this.selectedImages.indexOf(image));
+        }));
+      }),
+    ).subscribe({
+      complete: () => {
+        this.saving = false;
+        this.reset();
+        this.successMessage = `${total} image(s) added.`;
+        this.loadImages();
+        this.changeDetector.markForCheck();
+      },
+      error: (error: unknown) => {
+        this.saving = false;
+        this.errorMessage = `${saved} of ${total} images saved. ${getApiErrorMessage(error)} Remaining images can be retried.`;
+        if (saved) {
+          this.loadImages();
+          this.errorMessage = `${saved} of ${total} images saved. ${getApiErrorMessage(error)} Remaining images can be retried.`;
+        }
+        this.changeDetector.markForCheck();
+      },
     });
   }
 
@@ -442,8 +618,8 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
     request.subscribe({
       next: () => {
         this.successMessage = isCreate ? 'Image added.' : 'Image changes saved.';
-        this.reset();
         this.saving = false;
+        this.reset();
         this.loadImages();
         this.changeDetector.markForCheck();
       },

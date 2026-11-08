@@ -165,8 +165,9 @@
     <div class="form-footer">
       <label class="toggle-label">
         <input [(ngModel)]="draft.isActive" name="isActive" type="checkbox" />
-        <span>Active product</span>
+        <span>Enabled product</span>
       </label>
+      <p class="form-hint">Add at least one image, then activate the product from the list or product details to show it in the storefront.</p>
       <button class="button button-primary" type="submit" [disabled]="productForm.invalid || saving || !!calculationError">
         {{ saving ? 'Saving…' : editingId === null ? 'Create product' : 'Save changes' }}
       </button>
@@ -175,6 +176,13 @@
 </section>
 
 <section class="table-card">
+  @if (!viewerProduct && activationError) {
+    <div class="alert alert-error" role="alert">
+      {{ activationError }}
+      @if (activationNeedsImage) { <a routerLink="/admin/product-images">Add a product image</a> }
+    </div>
+  }
+  @if (!viewerProduct && activationMessage) { <div class="alert alert-success" role="status">{{ activationMessage }}</div> }
   <div class="table-toolbar">
     <div>
       <h2>Product catalog</h2>
@@ -187,7 +195,7 @@
   </div>
 
   <div class="tabs" role="tablist">
-    <button class="tab-button" type="button" role="tab" [class.active]="activeTab === 'active'" [attr.aria-selected]="activeTab === 'active'" (click)="selectTab('active')">Active ({{ tabCounts.active }})</button>
+    <button class="tab-button" type="button" role="tab" [class.active]="activeTab === 'active'" [attr.aria-selected]="activeTab === 'active'" (click)="selectTab('active')">Active &amp; Progress ({{ tabCounts.active }})</button>
     <button class="tab-button" type="button" role="tab" [class.active]="activeTab === 'inactive'" [attr.aria-selected]="activeTab === 'inactive'" (click)="selectTab('inactive')">Inactive ({{ tabCounts.inactive }})</button>
   </div>
 
@@ -235,11 +243,14 @@
               </td>
               <td>{{ product.costPrice | currency:'INR':'symbol':'1.0-2' }}</td>
               <td>{{ product.stock }}</td>
-              <td><span class="status-pill" [class.inactive]="!product.isActive">{{ product.isActive ? 'Active' : 'Inactive' }}</span></td>
+              <td><span class="status-pill" [class.inactive]="!product.isActive">{{ productStatus(product) }}</span></td>
               <td>{{ product.createdAt | date:'medium' }}</td>
               <td>{{ product.updatedAt | date:'medium' }}</td>
               <td>{{ product.createdBy || '—' }}</td>
               <td class="actions">
+                @if (productStatus(product) !== 'Active') {
+                  <button class="button button-secondary" type="button" [disabled]="activatingId !== null" [attr.aria-label]="'Activate ' + product.name" (click)="activate(product)">{{ activatingId === product.id ? 'Activating…' : 'Activate' }}</button>
+                }
                 @if (product.isActive) {
                   <button class="icon-button" type="button" title="Edit" [attr.aria-label]="'Edit ' + product.name" (click)="edit(product)"><app-action-icon name="edit" /></button>
                 }
@@ -279,6 +290,16 @@
           <h3 id="viewer-title">{{ viewerProduct.name }} — Product details</h3>
           <button class="text-button" type="button" aria-label="Close product details" autofocus (click)="closeImageViewer()">✕</button>
         </div>
+        @if (activationError) {
+          <div class="alert alert-error" role="alert">
+            {{ activationError }}
+            @if (activationNeedsImage) { <a routerLink="/admin/product-images">Add a product image</a> }
+          </div>
+        }
+        @if (activationMessage) { <div class="alert alert-success" role="status">{{ activationMessage }}</div> }
+        @if (productStatus(viewerProduct) !== 'Active') {
+          <button class="button button-secondary" type="button" [disabled]="activatingId !== null" (click)="activate(viewerProduct)">{{ activatingId === viewerProduct.id ? 'Activating…' : 'Activate product' }}</button>
+        }
         <div class="details-layout">
           <div class="details-gallery">
             @if (viewerLoading) {
@@ -339,7 +360,7 @@
               <div><dt>Slug</dt><dd>{{ viewerProduct.slug }}</dd></div>
               <div><dt>Category</dt><dd>{{ categoryName(viewerProduct.categoryId) }} (#{{ viewerProduct.categoryId }})</dd></div>
               <div><dt>Brand</dt><dd>{{ brandName(viewerProduct.brandId) }} (#{{ viewerProduct.brandId }})</dd></div>
-              <div><dt>Status</dt><dd>{{ viewerProduct.isActive ? 'Active' : 'Inactive' }}</dd></div>
+              <div><dt>Status</dt><dd>{{ productStatus(viewerProduct) }}</dd></div>
               <div><dt>MRP</dt><dd>{{ viewerProduct.mrp | currency:'INR':'symbol':'1.0-2' }}</dd></div>
               <div><dt>Sale price</dt><dd>{{ viewerProduct.salePrice | currency:'INR':'symbol':'1.0-2' }}</dd></div>
               <div><dt>Cost price</dt><dd>{{ viewerProduct.costPrice | currency:'INR':'symbol':'1.0-2' }}</dd></div>

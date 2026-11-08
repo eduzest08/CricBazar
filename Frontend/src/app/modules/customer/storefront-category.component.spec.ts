@@ -11,7 +11,7 @@ describe('category product page', () => {
     id, categoryId, brandId, name: `Product ${id}`, slug: `product-${id}`, sku: `SKU-${id}`,
     mrp: 500, salePrice: id * 100, costPrice: 50, discountPct: 0, shortDesc: null,
     description: null, stock: 1, avgRating: 0, reviewCount: 0, salesCount: 0,
-    sortOrder: 0, metaTitle: null, metaDesc: null, isActive: true, createdAt: `2026-01-0${id}`,
+    sortOrder: 0, metaTitle: null, metaDesc: null, isActive: true, hasImage: true, isPublished: true, createdAt: `2026-01-0${id}`,
     updatedAt: '', createdBy: null,
   });
   const category = (id: number, parentId: number | null) =>
@@ -27,8 +27,8 @@ describe('category product page', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
-          { path: 'customer', component: StorefrontPlaceholderComponent },
-          { path: 'customer/category/:id', component: StorefrontPlaceholderComponent },
+          { path: 'cricket', component: StorefrontPlaceholderComponent },
+          { path: 'cricket/category/:id', component: StorefrontPlaceholderComponent },
         ]),
         { provide: CatalogApiService, useValue: api },
       ],
@@ -36,12 +36,9 @@ describe('category product page', () => {
   });
 
   it('opens a category page and combines multiple brand and subcategory filters', async () => {
-    const harness = await RouterTestingHarness.create('/customer');
+    const harness = await RouterTestingHarness.create('/cricket/category/1');
     harness.detectChanges();
-    (harness.routeNativeElement as HTMLElement).querySelector<HTMLInputElement>('.category-option input')!.click();
-    await harness.fixture.whenStable();
-    harness.detectChanges();
-    expect(TestBed.inject(Router).url).toBe('/customer/category/1');
+    expect(TestBed.inject(Router).url).toBe('/cricket/category/1');
     const element = harness.routeNativeElement as HTMLElement;
     const component = harness.routeDebugElement!.componentInstance as StorefrontPlaceholderComponent;
     expect(element.querySelector('h1')?.textContent).toContain('Category 1');
@@ -56,7 +53,7 @@ describe('category product page', () => {
     expect(component.filteredProducts.map(item => item.id)).toEqual([2, 1]);
     brands[1].click(); fixtureChange(harness);
     expect(component.filteredProducts.map(item => item.id)).toEqual([3, 2, 1]);
-    element.querySelector<HTMLInputElement>('.subcategory-option input')!.click(); fixtureChange(harness);
+    component.setSubcategorySelected(2, true); fixtureChange(harness);
     expect(component.filteredProducts.map(item => item.id)).toEqual([3, 2]);
     brands[0].click(); fixtureChange(harness);
     expect(component.filteredProducts.map(item => item.id)).toEqual([3]);
@@ -65,14 +62,14 @@ describe('category product page', () => {
     component.minPrice = 400;
     fixtureChange(harness);
     expect(component.filteredProducts).toHaveLength(0);
-    element.querySelector<HTMLButtonElement>('.shopping-heading button')!.click(); fixtureChange(harness);
+    component.clearFilters(); fixtureChange(harness);
     expect(component.filteredProducts.map(item => item.id)).toEqual([3, 2, 1]);
     expect(component.selectedBrandIds.size).toBe(0);
     expect(component.selectedSubcategoryIds.size).toBe(0);
   });
 
   it('initializes a brand query on the category page and allows clearing it', async () => {
-    const harness = await RouterTestingHarness.create('/customer/category/1?brand=2');
+    const harness = await RouterTestingHarness.create('/cricket/category/1?brand=2');
     harness.detectChanges();
     const component = harness.routeDebugElement!.componentInstance as StorefrontPlaceholderComponent;
     expect(component.filteredProducts.map(item => item.id)).toEqual([3]);
@@ -95,7 +92,7 @@ describe('category product page', () => {
       { id: 3, name: 'Brand C', isActive: true }, { id: 4, name: 'Brand D', isActive: true },
       { id: 5, name: 'Brand E', isActive: false },
     ]));
-    const harness = await RouterTestingHarness.create('/customer/category/1');
+    const harness = await RouterTestingHarness.create('/cricket/category/1');
     harness.detectChanges();
     const component = harness.routeDebugElement!.componentInstance as StorefrontPlaceholderComponent;
     expect(component.availableBrands.map(brand => brand.name)).toEqual(['Brand A', 'Brand B']);
@@ -103,7 +100,7 @@ describe('category product page', () => {
     component.setSubcategorySelected(2, true);
     harness.detectChanges();
     expect(component.availableBrands.map(brand => brand.name)).toEqual(['Brand A', 'Brand B']);
-    await harness.navigateByUrl('/customer/category/4');
+    await harness.navigateByUrl('/cricket/category/4');
     harness.detectChanges();
     const newComponent = harness.routeDebugElement!.componentInstance as StorefrontPlaceholderComponent;
     expect(newComponent.availableBrands.map(brand => brand.name)).toEqual(['Brand C']);
@@ -111,7 +108,7 @@ describe('category product page', () => {
   });
 
   it('explains empty brands and unavailable brand links without silently clearing the filter', async () => {
-    const harness = await RouterTestingHarness.create('/customer/category/4?brand=1');
+    const harness = await RouterTestingHarness.create('/cricket/category/4?brand=1');
     harness.detectChanges();
     let element = harness.routeNativeElement as HTMLElement;
     expect(element.textContent).toContain('A selected brand has no active products');
@@ -121,7 +118,7 @@ describe('category product page', () => {
     expect(element.querySelectorAll('.product-card')).toHaveLength(1);
     expect(element.textContent).not.toContain('A selected brand has no active products');
     vi.spyOn(api, 'getProducts').mockReturnValue(of({ items: [], totalCount: 0, pageNumber: 1, pageSize: 100 }));
-    await harness.navigateByUrl('/customer/category/1');
+    await harness.navigateByUrl('/cricket/category/1');
     (harness.routeDebugElement!.componentInstance as StorefrontPlaceholderComponent).loadCatalog();
     harness.detectChanges();
     element = harness.routeNativeElement as HTMLElement;
@@ -130,18 +127,18 @@ describe('category product page', () => {
   });
 
   it('handles invalid and nested category URLs without exposing unrelated products', async () => {
-    const harness = await RouterTestingHarness.create('/customer/category/2');
+    const harness = await RouterTestingHarness.create('/cricket/category/2');
     harness.detectChanges();
     const component = harness.routeDebugElement!.componentInstance as StorefrontPlaceholderComponent;
     expect(component.filteredProducts.map(item => item.id)).toEqual([3, 2]);
     expect((harness.routeNativeElement as HTMLElement).querySelectorAll('.subcategory-option')).toHaveLength(1);
     component.clearFilters();
     expect(component.filteredProducts.map(item => item.id)).toEqual([3, 2]);
-    await harness.navigateByUrl('/customer/category/999');
+    await harness.navigateByUrl('/cricket/category/999');
     harness.detectChanges();
     expect((harness.routeNativeElement as HTMLElement).textContent).toContain('Category not found');
     expect((harness.routeNativeElement as HTMLElement).querySelectorAll('.product-card')).toHaveLength(0);
-    await harness.navigateByUrl('/customer/category/invalid');
+    await harness.navigateByUrl('/cricket/category/invalid');
     harness.detectChanges();
     expect((harness.routeNativeElement as HTMLElement).textContent).toContain('Category not found');
   });

@@ -35,7 +35,9 @@ public class ProductsController : ControllerBase
         [FromQuery] decimal? maxPrice = null,
         [FromQuery] string? searchTerm = null,
         [FromQuery] string? sortBy = "newest",
-        [FromQuery] bool isActive = true)
+        [FromQuery] bool isActive = true,
+        [FromQuery] bool? hasImage = null,
+        [FromQuery] bool publishedOnly = false)
     {
         _logger.LogInformation("Getting products - Page: {PageNumber}, Size: {PageSize}, Category: {CategoryId}", pageNumber, pageSize, categoryId);
         
@@ -49,11 +51,30 @@ public class ProductsController : ControllerBase
             MaxPrice = maxPrice,
             SearchTerm = searchTerm,
             SortBy = sortBy,
-            IsActive = isActive
+            IsActive = isActive,
+            HasImage = hasImage,
+            PublishedOnly = publishedOnly
         };
 
         var products = await _mediator.Send(query);
         return Ok(products);
+    }
+
+    /// <summary>Activate a product after at least one image has been added.</summary>
+    [HttpPost("{id}/activate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Activate(int id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new ActivateProductCommand(id), cancellationToken);
+        return result switch
+        {
+            ActivateProductResult.Activated => NoContent(),
+            ActivateProductResult.NotFound => NotFound(new { message = "Product not found." }),
+            ActivateProductResult.MissingImage => Conflict(new { message = "Add at least one product image before activating." }),
+            _ => throw new InvalidOperationException("Unexpected product activation result.")
+        };
     }
 
     /// <summary>

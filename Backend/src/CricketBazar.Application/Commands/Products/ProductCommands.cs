@@ -26,6 +26,7 @@ public class DeleteProductCommand : IRequest<bool>
 }
 
 public record DeleteInactiveProductCommand(int Id) : IRequest<PermanentProductDeleteResult>;
+public record ActivateProductCommand(int Id) : IRequest<ActivateProductResult>;
 
 public class AddProductImageCommand : IRequest<ProductImageDto>
 {

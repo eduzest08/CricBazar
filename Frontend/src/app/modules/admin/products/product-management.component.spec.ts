@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 import { CatalogApiService } from '../../../core/services/catalog-api.service';
 import { Category, Product } from '../../../core/models/catalog.models';
@@ -10,7 +12,7 @@ describe('ProductManagementComponent details', () => {
     mrp: 100, salePrice: 80, costPrice: 40, discountPct: 20,
     shortDesc: 'Short', description: '<p>Full details</p>', stock: 5,
     avgRating: 4, reviewCount: 2, salesCount: 3, sortOrder: 1,
-    metaTitle: 'Title', metaDesc: 'Meta', isActive: true,
+    metaTitle: 'Title', metaDesc: 'Meta', isActive: true, hasImage: true, isPublished: true,
     createdAt: '2026-01-02T03:04:05Z', updatedAt: '2026-02-03T04:05:06Z',
     createdBy: 'admin',
   };
@@ -19,7 +21,7 @@ describe('ProductManagementComponent details', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ProductManagementComponent],
-      providers: [{
+      providers: [provideRouter([]), {
         provide: CatalogApiService,
         useValue: {
           getProducts: () => of(page),
@@ -27,12 +29,87 @@ describe('ProductManagementComponent details', () => {
           getBrands: () => of([]),
           getProductImages: () => of({ items: [], totalCount: 0, pageNumber: 1, pageSize: 100 }),
           updateProduct: () => of(product),
+          activateProduct: () => of(undefined),
           deleteProduct: () => of(undefined),
           deleteProductPermanently: () => of(undefined),
           resolveAssetUrl: (url: string) => url,
         },
       }],
     }).compileComponents();
+  });
+
+  it('shows Progress for enabled products without an image and keeps inactive products inactive', () => {
+    const api = TestBed.inject(CatalogApiService);
+    vi.spyOn(api, 'getProducts').mockReturnValue(of({
+      ...page, items: [{ ...product, hasImage: false }, { ...product, id: 2, isActive: false, hasImage: false }],
+    }));
+    const fixture = TestBed.createComponent(ProductManagementComponent);
+    fixture.detectChanges();
+    const statuses = Array.from(fixture.nativeElement.querySelectorAll('.status-pill'), (node) => (node as HTMLElement).textContent?.trim());
+    expect(statuses).toEqual(['Progress', 'Inactive']);
+    expect(fixture.componentInstance.productStatus({ ...product, hasImage: true })).toBe('Active');
+  });
+
+  it('warns in the list when activation fails because no image exists', () => {
+    const api = TestBed.inject(CatalogApiService);
+    vi.spyOn(api, 'getProducts').mockReturnValue(of({ ...page, items: [{ ...product, hasImage: false, isPublished: false }] }));
+    const activate = vi.spyOn(api, 'activateProduct').mockReturnValue(throwError(() => new HttpErrorResponse({
+      status: 409, error: { message: 'Add at least one product image before activating.' },
+    })));
+    const fixture = TestBed.createComponent(ProductManagementComponent);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('[aria-label="Activate Bat"]').click();
+    fixture.detectChanges();
+    expect(activate).toHaveBeenCalledWith(1);
+    expect(fixture.nativeElement.querySelector('.table-card [role="alert"]').textContent).toContain('Add at least one product image');
+    expect(fixture.nativeElement.querySelector('.table-card [role="alert"] a')?.getAttribute('href')).toBe('/admin/product-images');
+    expect(fixture.nativeElement.querySelector('.status-pill').textContent).toContain('Progress');
+  });
+
+  it('does not suggest adding an image for other activation failures', () => {
+    const api = TestBed.inject(CatalogApiService);
+    vi.spyOn(api, 'getProducts').mockReturnValue(of({ ...page, items: [{ ...product, isPublished: false }] }));
+    vi.spyOn(api, 'activateProduct').mockReturnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+    const fixture = TestBed.createComponent(ProductManagementComponent);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('[aria-label="Activate Bat"]').click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.table-card [role="alert"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.table-card [role="alert"] a')).toBeNull();
+  });
+
+  it('activates a product from the popup and updates its displayed status', () => {
+    const api = TestBed.inject(CatalogApiService);
+    vi.spyOn(api, 'getProducts').mockReturnValue(of({ ...page, items: [{ ...product, isPublished: false }] }));
+    const activate = vi.spyOn(api, 'activateProduct').mockReturnValue(of(undefined));
+    const fixture = TestBed.createComponent(ProductManagementComponent);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('[aria-label="View details for Bat"]').click();
+    fixture.detectChanges();
+    const modal = fixture.nativeElement.querySelector('.viewer-modal') as HTMLElement;
+    Array.from(modal.querySelectorAll('button')).find(button => button.textContent?.includes('Activate product'))!.click();
+    fixture.detectChanges();
+    expect(activate).toHaveBeenCalledWith(1);
+    expect(modal.querySelector('[role="status"]')?.textContent).toContain('Bat is active');
+    expect(modal.textContent).toContain('Active');
+  });
+
+  it('shows the image warning inside the product popup', () => {
+    const api = TestBed.inject(CatalogApiService);
+    vi.spyOn(api, 'getProducts').mockReturnValue(of({ ...page, items: [{ ...product, hasImage: false, isPublished: false }] }));
+    vi.spyOn(api, 'activateProduct').mockReturnValue(throwError(() => new HttpErrorResponse({
+      status: 409, error: { message: 'Add at least one product image before activating.' },
+    })));
+    const fixture = TestBed.createComponent(ProductManagementComponent);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('[aria-label="View details for Bat"]').click();
+    fixture.detectChanges();
+    const modal = fixture.nativeElement.querySelector('.viewer-modal') as HTMLElement;
+    Array.from(modal.querySelectorAll('button')).find(button => button.textContent?.includes('Activate product'))!.click();
+    fixture.detectChanges();
+    expect(modal.querySelector('[role="alert"]')?.textContent).toContain('Add at least one product image');
+    expect(modal.querySelector('[role="alert"] a')?.getAttribute('href')).toBe('/admin/product-images');
+    expect(modal.textContent).toContain('Progress');
   });
 
   it('orders category options by hierarchy and saves the selected child ID', async () => {
@@ -262,11 +339,11 @@ describe('ProductManagementComponent details', () => {
     const api = TestBed.inject(CatalogApiService);
     const images = vi.spyOn(api, 'getProductImages')
       .mockReturnValueOnce(of({
-        items: [{ id: 1, productId: 1, productName: 'Bat', url: '/one.png', sortOrder: 0 }],
+        items: [{ id: 1, productId: 1, productName: 'Bat', productIsPublished: true, url: '/one.png', sortOrder: 0 }],
         totalCount: 101, pageNumber: 1, pageSize: 100,
       }))
       .mockReturnValueOnce(of({
-        items: [{ id: 2, productId: 1, productName: 'Bat', url: '/two.png', sortOrder: 1 }],
+        items: [{ id: 2, productId: 1, productName: 'Bat', productIsPublished: true, url: '/two.png', sortOrder: 1 }],
         totalCount: 101, pageNumber: 2, pageSize: 100,
       }));
     const fixture = TestBed.createComponent(ProductManagementComponent);
@@ -285,7 +362,7 @@ describe('ProductManagementComponent details', () => {
   it('loads images for inactive products and reports broken image URLs', () => {
     const api = TestBed.inject(CatalogApiService);
     const images = vi.spyOn(api, 'getProductImages').mockReturnValue(of({
-      items: [{ id: 1, productId: 1, productName: 'Bat', url: '/missing.png', sortOrder: 0 }],
+      items: [{ id: 1, productId: 1, productName: 'Bat', productIsPublished: true, url: '/missing.png', sortOrder: 0 }],
       totalCount: 1, pageNumber: 1, pageSize: 100,
     }));
     const fixture = TestBed.createComponent(ProductManagementComponent);

@@ -12,7 +12,7 @@ namespace CricketBazar.Infrastructure.Repositories;
 public class DapperProductImageRepository : DapperRepository<ProductImage>, IProductImageRepository
 {
     private const string ListSelect = @"
-        SELECT pi.Id, pi.ProductId, p.Name AS ProductName, pi.Url, pi.SortOrder
+        SELECT pi.Id, pi.ProductId, p.Name AS ProductName, p.IsPublished AS ProductIsPublished, pi.Url, pi.SortOrder
         FROM dbo.ProductImages pi
         INNER JOIN dbo.Products p ON p.Id = pi.ProductId";
 
@@ -75,25 +75,42 @@ public class DapperProductImageRepository : DapperRepository<ProductImage>, IPro
 
     public async Task<bool> UpdateAsync(ProductImage image)
     {
-        const string sql = @"
-            UPDATE dbo.ProductImages
-            SET ProductId = @ProductId, Url = @Url, SortOrder = @SortOrder
-            WHERE Id = @Id";
-
-        using (var connection = _connectionFactory.GetConnection())
-        {
-            return await connection.ExecuteAsync(sql, image) > 0;
-        }
+        await using var connection = _connectionFactory.GetConnection();
+        await connection.OpenAsync();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var oldProductId = await connection.QuerySingleOrDefaultAsync<int?>(
+            "SELECT ProductId FROM dbo.ProductImages WITH (UPDLOCK, HOLDLOCK) WHERE Id = @Id",
+            new { image.Id }, transaction);
+        if (oldProductId is null) return false;
+        await connection.ExecuteAsync(
+            "UPDATE dbo.ProductImages SET ProductId = @ProductId, Url = @Url, SortOrder = @SortOrder WHERE Id = @Id",
+            image, transaction);
+        if (oldProductId != image.ProductId)
+            await UnpublishWithoutImages(connection, transaction, oldProductId.Value);
+        transaction.Commit();
+        return true;
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        const string sql = "DELETE FROM dbo.ProductImages WHERE Id = @Id";
-        using (var connection = _connectionFactory.GetConnection())
-        {
-            return await connection.ExecuteAsync(sql, new { Id = id }) > 0;
-        }
+        await using var connection = _connectionFactory.GetConnection();
+        await connection.OpenAsync();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var productId = await connection.QuerySingleOrDefaultAsync<int?>(
+            "SELECT ProductId FROM dbo.ProductImages WITH (UPDLOCK, HOLDLOCK) WHERE Id = @Id",
+            new { Id = id }, transaction);
+        if (productId is null) return false;
+        await connection.ExecuteAsync("DELETE FROM dbo.ProductImages WHERE Id = @Id", new { Id = id }, transaction);
+        await UnpublishWithoutImages(connection, transaction, productId.Value);
+        transaction.Commit();
+        return true;
     }
+
+    private static Task<int> UnpublishWithoutImages(IDbConnection connection, IDbTransaction transaction, int productId)
+        => connection.ExecuteAsync(@"UPDATE dbo.Products SET IsPublished = 0
+            WHERE Id = @ProductId AND NOT EXISTS
+            (SELECT 1 FROM dbo.ProductImages WHERE ProductId = @ProductId)",
+            new { ProductId = productId }, transaction);
 
     public async Task<(IEnumerable<ProductImageListItem> items, int totalCount)> SearchAsync(
         string? searchTerm, int? productId, string? sortBy, bool descending, int pageNumber, int pageSize, bool isActive = true)

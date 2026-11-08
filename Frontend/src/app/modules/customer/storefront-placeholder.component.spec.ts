@@ -10,7 +10,7 @@ describe('customer catalog', () => {
     id, name: `Product ${id}`, slug: `product-${id}`, sku: `SKU-${id}`, categoryId, brandId,
     mrp: 1000, salePrice: id * 100, costPrice: 50, discountPct: 0, shortDesc: null,
     description: null, stock: 5, avgRating: 0, reviewCount: 0, salesCount: 0, sortOrder: 0,
-    metaTitle: null, metaDesc: null, isActive: true, createdAt: `2026-01-${String(id).padStart(2, '0')}`,
+    metaTitle: null, metaDesc: null, isActive: true, hasImage: true, isPublished: true, createdAt: `2026-01-${String(id).padStart(2, '0')}`,
     updatedAt: '', createdBy: null,
   });
   const category = (id: number, parentId: number | null): Category =>
@@ -18,7 +18,7 @@ describe('customer catalog', () => {
   const page = <T>(items: T[], pageNumber = 1, totalCount = items.length, pageSize = 100): PaginatedResponse<T> =>
     ({ items, pageNumber, totalCount, pageSize });
   const image = (productId: number): ProductImage =>
-    ({ id: productId, productId, productName: '', url: `/uploads/${productId}.jpg`, sortOrder: 0 });
+    ({ id: productId, productId, productName: '', productIsPublished: true, url: `/uploads/${productId}.jpg`, sortOrder: 0 });
   const api = {
     getProducts: vi.fn(),
     getCategories: vi.fn(),
@@ -52,9 +52,20 @@ describe('customer catalog', () => {
     expect(api.getProducts).toHaveBeenCalledTimes(3);
     expect(element.querySelectorAll('.product-card')).toHaveLength(2);
     expect(element.querySelector<HTMLImageElement>('img[alt="Product 2"]')?.src).toBe('http://api.test/uploads/2.jpg');
-    expect(element.querySelector<HTMLAnchorElement>('.product-link')?.getAttribute('href')).toBe('/customer/product/2');
+    expect(element.querySelector<HTMLAnchorElement>('.product-link')?.getAttribute('href')).toBe('/cricket/product/2');
     expect(api.getProductImages).toHaveBeenCalledWith(expect.objectContaining({ productId: 2, pageSize: 1, sortBy: 'sortOrder', sortDirection: 'asc', isActive: true }));
     expect(element.textContent).not.toContain('Inactive');
+  });
+
+  it('adds a catalog product to the shared cart', () => {
+    const fixture = TestBed.createComponent(StorefrontPlaceholderComponent);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.add-to-cart')!.click();
+    fixture.detectChanges();
+
+    expect(element.querySelector('[role=status]')?.textContent).toContain('added to cart');
+    expect(element.querySelector('.cart-toggle')?.textContent).toContain('Your Cart (1)');
   });
 
   it('displays the supplied logo in the header and footer', () => {

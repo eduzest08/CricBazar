@@ -80,7 +80,7 @@ describe('admin list action icons', () => {
   it('renders image view, edit and delete actions', () => {
     const fixture = TestBed.createComponent(ProductImagesComponent);
     vi.spyOn(fixture.componentInstance, 'loadImages').mockImplementation(() => {});
-    const item = { id: 3, productId: 1, productName: 'Bat', url: '/example.png', sortOrder: 0 };
+    const item = { id: 3, productId: 1, productName: 'Bat', productIsPublished: false, url: '/example.png', sortOrder: 0 };
     fixture.componentInstance.images = [item];
     const view = vi.spyOn(fixture.componentInstance, 'previewInViewer').mockImplementation(() => {});
     const edit = vi.spyOn(fixture.componentInstance, 'edit').mockImplementation(() => {});

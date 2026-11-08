@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Subscription, catchError, forkJoin, map, of } from 'rxjs';
 import { Brand, Category, Product } from '../../core/models/catalog.models';
 import { CatalogApiService } from '../../core/services/catalog-api.service';
+import { StorefrontCartService } from '../../core/services/storefront-cart.service';
 import { getApiErrorMessage } from '../../core/utils/api-error';
 import { StorefrontHeaderComponent } from './storefront-header.component';
 import { StorefrontFooterComponent } from './storefront-footer.component';
@@ -16,6 +17,7 @@ import { StorefrontFooterComponent } from './storefront-footer.component';
 })
 export class StorefrontHomeComponent implements OnInit, OnDestroy {
   private readonly api = inject(CatalogApiService);
+  readonly cart = inject(StorefrontCartService);
   private readonly router = inject(Router);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private catalogSubscription?: Subscription;
@@ -31,6 +33,8 @@ export class StorefrontHomeComponent implements OnInit, OnDestroy {
   imagesLoading = false;
   error = '';
   imageError = '';
+  cartMessage = '';
+  cartMessageProductId: number | null = null;
 
   ngOnInit(): void { this.load(); }
   ngOnDestroy(): void {
@@ -48,12 +52,12 @@ export class StorefrontHomeComponent implements OnInit, OnDestroy {
     this.images.clear();
     this.failedImages.clear();
     this.catalogSubscription = forkJoin({
-      products: this.api.getProducts('', 1, 8, 'bestselling', true),
+      products: this.api.getProducts('', 1, 8, 'bestselling', true, undefined, true, true),
       categories: this.api.getCategories(),
       brands: this.api.getBrands(),
     }).subscribe({
       next: ({ products, categories, brands }) => {
-        this.products = products.items.filter(product => product.isActive);
+        this.products = products.items.filter(product => product.isActive && product.hasImage && product.isPublished);
         this.categories = categories.filter(category => category.isActive && category.parentId === null)
           .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name) || a.id - b.id);
         this.brands = brands.filter(brand => brand.isActive).sort((a, b) => a.name.localeCompare(b.name));
@@ -70,7 +74,18 @@ export class StorefrontHomeComponent implements OnInit, OnDestroy {
   }
 
   search(): void {
-    void this.router.navigate(['/customer'], { queryParams: { search: this.searchTerm.trim() || null } });
+    void this.router.navigate(['/cricket'], { queryParams: { search: this.searchTerm.trim() || null } });
+  }
+
+  addToCart(product: Product): void {
+    const result = this.cart.add(product);
+    this.cartMessageProductId = product.id;
+    this.cartMessage = result === 'added'
+      ? `${product.name} added to cart.`
+      : result === 'out-of-stock'
+        ? `${product.name} is out of stock.`
+        : 'This quantity is unavailable.';
+    this.changeDetector.markForCheck();
   }
 
   discount(product: Product): number {

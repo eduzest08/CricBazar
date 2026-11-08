@@ -24,6 +24,8 @@ public class GetProductsListQuery : IRequest<PaginatedResponse<ProductDto>>
     public string? SearchTerm { get; set; }
     public string? SortBy { get; set; } = "newest";
     public bool IsActive { get; set; } = true;
+    public bool? HasImage { get; set; }
+    public bool PublishedOnly { get; set; }
 }
 
 public class GetProductBySlugQuery : IRequest<ProductDto?>

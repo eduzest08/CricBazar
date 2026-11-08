@@ -110,6 +110,22 @@
   gap: 12px;
 }
 
+.selected-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.selected-preview {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 120px;
+  overflow-wrap: anywhere;
+}
+
 .image-preview {
   align-items: center;
   background: var(--theme-tint, #f4f7f4);

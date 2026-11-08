@@ -13,7 +13,7 @@ describe('storefront footer', () => {
     fixture.detectChanges();
     const footer = fixture.nativeElement as HTMLElement;
     const links = footer.querySelectorAll<HTMLAnchorElement>('nav a');
-    expect([...links].map(link => link.getAttribute('href'))).toEqual(['/', '/customer']);
+    expect([...links].map(link => link.getAttribute('href'))).toEqual(['/', '/cricket']);
     expect(footer.querySelectorAll('.upcoming li')).toHaveLength(3);
     expect([...footer.querySelectorAll('.upcoming li')].every(item => item.textContent?.includes('Coming soon'))).toBe(true);
     expect(footer.textContent).toContain('Contact information coming soon.');

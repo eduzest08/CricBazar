@@ -17,6 +17,14 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
         _mapper = mapper;
     }
 
+    public class ActivateProductCommandHandler : IRequestHandler<ActivateProductCommand, ActivateProductResult>
+    {
+        private readonly IProductRepository _repository;
+        public ActivateProductCommandHandler(IProductRepository repository) => _repository = repository;
+        public Task<ActivateProductResult> Handle(ActivateProductCommand request, CancellationToken cancellationToken)
+            => _repository.ActivateAsync(request.Id, cancellationToken);
+    }
+
     public async Task<ProductDto> Handle(CreateProductCommand request, CancellationToken cancellationToken)
     {
         var product = _mapper.Map<Product>(request.Product);
@@ -61,6 +69,8 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
         if (product == null)
             throw new KeyNotFoundException($"Product with ID {request.Id} not found");
 
+        if (!product.IsActive || !request.Product.IsActive)
+            product.IsPublished = false;
         _mapper.Map(request.Product, product);
         await _repository.UpdateAsync(product);
 
