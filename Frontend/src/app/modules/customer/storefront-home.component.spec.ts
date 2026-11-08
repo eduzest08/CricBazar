@@ -93,7 +93,7 @@ describe('customer home', () => {
     const harness = await RouterTestingHarness.create('/cricket?category=2');
     harness.detectChanges();
     const element = harness.routeNativeElement as HTMLElement;
-    expect(element.querySelector<HTMLInputElement>('.category-option input')?.checked).toBe(true);
+    expect(element.querySelector('.category-option.selected')?.getAttribute('aria-current')).toBe('page');
     expect(element.querySelectorAll('.product-card')).toHaveLength(1);
     element.querySelector<HTMLButtonElement>('.shopping-heading button')!.click();
     harness.detectChanges();

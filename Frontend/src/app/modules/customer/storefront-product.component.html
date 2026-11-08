@@ -65,19 +65,30 @@
         <a class="browse-link" routerLink="/cricket">Continue shopping</a>
       </section>
     </div>
-    @if (item.description || attributes.length) {
-      <section class="details" aria-labelledby="details-title">
-        <h2 id="details-title">Product details</h2>
-        @if (item.description) { <div class="description" [innerHTML]="item.description"></div> }
-        @if (attributes.length) {
-          <h3>Specifications</h3>
-          <dl>@for (attribute of attributes; track attribute.id) { <div><dt>{{ attribute.name }}</dt><dd>{{ attribute.value }}</dd></div> }</dl>
-        }
+    @if (item.description || attributes.length || detailsLoading || detailsError) {
+      <section class="details" aria-label="Product information">
+        <div class="details-tabs" role="tablist" aria-label="Product information" (keydown)="onDetailsTabKeydown($event)">
+          <button id="details-tab" type="button" role="tab" aria-controls="details-panel" [attr.aria-selected]="activeDetailsTab === 'details'" [attr.tabindex]="activeDetailsTab === 'details' ? 0 : -1" (click)="selectDetailsTab('details')">Product details</button>
+          <button id="specifications-tab" type="button" role="tab" aria-controls="specifications-panel" [attr.aria-selected]="activeDetailsTab === 'specifications'" [attr.tabindex]="activeDetailsTab === 'specifications' ? 0 : -1" (click)="selectDetailsTab('specifications')">Specifications</button>
+        </div>
+        <div id="details-panel" class="details-panel" role="tabpanel" aria-labelledby="details-tab" tabindex="0" [hidden]="activeDetailsTab !== 'details'">
+          @if (item.description) { <div class="description" [innerHTML]="item.description"></div> }
+          @else { <p class="details-empty">No product details available.</p> }
+        </div>
+        <div id="specifications-panel" class="details-panel" role="tabpanel" aria-labelledby="specifications-tab" tabindex="0" [hidden]="activeDetailsTab !== 'specifications'">
+          @if (detailsLoading) {
+            <p class="details-empty" role="status">Loading specifications...</p>
+          } @else if (detailsError) {
+            <p class="details-empty">Specifications could not be loaded.</p>
+          } @else if (attributes.length) {
+            <dl>@for (attribute of attributes; track attribute.id) { <div><dt>{{ attribute.name }}</dt><dd>{{ attribute.value }}</dd></div> }</dl>
+          } @else { <p class="details-empty">No specifications available.</p> }
+        </div>
       </section>
     }
     @if (detailsError) { <div class="notice error" role="alert">Could not load product images and specifications: {{ detailsError }} <button type="button" (click)="loadDetails()">Try again</button></div> }
     <section class="related-products" aria-labelledby="related-products-title">
-      <h2 id="related-products-title">Related products</h2>
+      <h2 id="related-products-title">{{ showingOtherProducts ? 'Explore more products' : 'Related products' }}</h2>
       @if (relatedLoading) {
         <p class="related-status" role="status">Loading related products...</p>
       } @else if (relatedError) {
@@ -108,7 +119,7 @@
           }
         </div>
       } @else {
-        <p class="related-status">No related products found.</p>
+        <p class="related-status">No other products available.</p>
       }
     </section>
   }

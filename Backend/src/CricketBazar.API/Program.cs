@@ -80,7 +80,17 @@ try
     app.UseHttpsRedirection();
 
     // Serves uploaded files (e.g. brand logos) from wwwroot
-    app.UseStaticFiles();
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        OnPrepareResponse = context =>
+        {
+            if (context.Context.Request.Path.StartsWithSegments("/uploads/products") &&
+                context.Context.Response.ContentType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                context.Context.Response.Headers.CacheControl = "public, max-age=86400";
+            }
+        }
+    });
 
     app.UseCors("AllowAngular");
 
@@ -136,3 +146,5 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+public partial class Program { }

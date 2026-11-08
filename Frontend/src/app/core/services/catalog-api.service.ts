@@ -14,7 +14,6 @@ import {
   ProductAttribute,
   ProductAttributePayload,
   ProductAttributeQuery,
-  ProductDraft,
   ProductImage,
   ProductImagePayload,
   ProductImageQuery,

@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { EMPTY, Observable, Subscription, catchError, expand, forkJoin, from, map, mergeMap, of, reduce, throwError, toArray } from 'rxjs';
+import { EMPTY, Observable, Subscription, catchError, expand, forkJoin, from, map, mergeMap, of, reduce, switchMap, throwError, toArray } from 'rxjs';
 import { PaginatedResponse, Product, ProductAttribute, ProductImage } from '../../core/models/catalog.models';
 import { CatalogApiService } from '../../core/services/catalog-api.service';
 import { AddToCartResult, StorefrontCartService } from '../../core/services/storefront-cart.service';
@@ -40,6 +40,7 @@ export class StorefrontProductComponent implements OnInit, OnDestroy {
   detailsLoading = false;
   error = '';
   detailsError = '';
+  activeDetailsTab: 'details' | 'specifications' = 'details';
   notFound = false;
   quantity = 1;
   cartMessage = '';
@@ -51,6 +52,7 @@ export class StorefrontProductComponent implements OnInit, OnDestroy {
   relatedError = '';
   relatedImageError = '';
   relatedCartMessage = '';
+  showingOtherProducts = false;
 
   ngOnInit(): void {
     this.routeSubscription = this.route.paramMap.subscribe(params => {
@@ -80,6 +82,7 @@ export class StorefrontProductComponent implements OnInit, OnDestroy {
     this.failedImages.clear();
     this.detailsLoading = false;
     this.detailsError = '';
+    this.activeDetailsTab = 'details';
     this.error = '';
     this.notFound = !this.productId;
     this.loading = !!this.productId;
@@ -93,6 +96,7 @@ export class StorefrontProductComponent implements OnInit, OnDestroy {
     this.relatedError = '';
     this.relatedImageError = '';
     this.relatedCartMessage = '';
+    this.showingOtherProducts = false;
     if (!this.productId) return;
 
     this.productSubscription = this.api.getProduct(this.productId).subscribe({
@@ -126,14 +130,31 @@ export class StorefrontProductComponent implements OnInit, OnDestroy {
     this.relatedImagesLoading = false;
     this.relatedImageError = '';
     this.relatedError = '';
+    this.showingOtherProducts = false;
     this.relatedLoading = true;
     const currentProduct = this.product;
     this.relatedSubscription = this.allPages(page =>
       this.api.getProducts('', page, 100, 'newest', true, currentProduct.categoryId, true, true),
+    ).pipe(
+      map(products => products.filter(product =>
+        product.isActive && product.hasImage && product.isPublished && product.id !== currentProduct.id && product.categoryId === currentProduct.categoryId)),
+      switchMap(products => products.length
+        ? of({ products, fallback: false })
+        : this.allPages(page => this.api.getProducts('', page, 100, 'newest', true, undefined, true, true)).pipe(
+          map(allProducts => {
+            const available = allProducts.filter(product =>
+              product.isActive && product.hasImage && product.isPublished && product.id !== currentProduct.id);
+            for (let i = available.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [available[i], available[j]] = [available[j], available[i]];
+            }
+            return { products: available, fallback: true };
+          }),
+        )),
     ).subscribe({
-      next: products => {
-        this.relatedProducts = products.filter(product =>
-          product.isActive && product.hasImage && product.isPublished && product.id !== currentProduct.id && product.categoryId === currentProduct.categoryId);
+      next: ({ products, fallback }) => {
+        this.relatedProducts = products;
+        this.showingOtherProducts = fallback;
         this.relatedLoading = false;
         this.loadRelatedImages();
         this.changeDetector.markForCheck();
@@ -198,6 +219,25 @@ export class StorefrontProductComponent implements OnInit, OnDestroy {
         this.changeDetector.markForCheck();
       },
     });
+  }
+
+  selectDetailsTab(tab: 'details' | 'specifications'): void {
+    this.activeDetailsTab = tab;
+  }
+
+  onDetailsTabKeydown(event: KeyboardEvent): void {
+    let tab: 'details' | 'specifications';
+    if (event.key === 'Home') tab = 'details';
+    else if (event.key === 'End') tab = 'specifications';
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      tab = this.activeDetailsTab === 'details' ? 'specifications' : 'details';
+    } else return;
+    event.preventDefault();
+    this.selectDetailsTab(tab);
+    const tabList = event.currentTarget;
+    if (tabList instanceof HTMLElement) {
+      tabList.querySelector<HTMLButtonElement>(`#${tab}-tab`)?.focus();
+    }
   }
 
   get selectedImage(): ProductImage | undefined {

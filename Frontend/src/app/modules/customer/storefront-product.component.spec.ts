@@ -63,6 +63,71 @@ describe('storefront product details', () => {
     harness.detectChanges();
     expect(element.querySelector('.related-cart-status')?.textContent).toContain('Related bat added to cart');
     expect(element.querySelector('.cart-toggle')?.textContent).toContain('Your Cart (1)');
+    expect(api.getProducts).not.toHaveBeenCalledWith('', 1, 100, 'newest', true, undefined, true, true);
+  });
+
+  it('shows all eligible products in random order when no related products exist', async () => {
+    const other = { ...product, id: 2, name: 'Ball', categoryId: 2 };
+    const other2 = { ...product, id: 3, name: 'Pads', categoryId: 3 };
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+    api.getProducts.mockImplementation((_search: string, pageNumber: number, _pageSize: number, _sort: string, _active: boolean, categoryId?: number) => {
+      if (categoryId !== undefined) return of(page([product]));
+      return of(pageNumber === 1
+        ? page([product, other, { ...product, id: 4, isPublished: false }], 1, 5, 3)
+        : page([other2, { ...product, id: 5, hasImage: false }], 2, 5, 3));
+    });
+    try {
+      const harness = await RouterTestingHarness.create('/cricket/product/1');
+      harness.detectChanges();
+      const element = harness.routeNativeElement as HTMLElement;
+      expect(api.getProducts).toHaveBeenCalledWith('', 2, 100, 'newest', true, undefined, true, true);
+      expect(element.querySelector('#related-products-title')?.textContent).toContain('Explore more products');
+      const cards = element.querySelectorAll<HTMLElement>('.related-card');
+      expect(cards).toHaveLength(2);
+      expect(cards[0].textContent).toContain('Pads');
+      expect(cards[1].textContent).toContain('Ball');
+      expect(cards[0].querySelector('a')?.getAttribute('href')).toBe('/cricket/product/3');
+      expect(random).toHaveBeenCalled();
+    } finally {
+      random.mockRestore();
+    }
+  });
+
+  it('shows an empty message only when no other eligible products are available', async () => {
+    api.getProducts.mockReturnValue(of(page([product])));
+    const harness = await RouterTestingHarness.create('/cricket/product/1');
+    harness.detectChanges();
+    const element = harness.routeNativeElement as HTMLElement;
+    expect(element.querySelector('.related-card')).toBeNull();
+    expect(element.querySelector('.related-status')?.textContent).toContain('No other products available');
+  });
+
+  it('reports fallback errors and retries the product search', async () => {
+    api.getProducts.mockReturnValueOnce(of(page([product])))
+      .mockReturnValueOnce(throwError(() => new Error('Other products unavailable')))
+      .mockReturnValueOnce(of(page([product])))
+      .mockReturnValueOnce(of(page([{ ...product, id: 2, name: 'Ball', categoryId: 2 }])));
+    const harness = await RouterTestingHarness.create('/cricket/product/1');
+    harness.detectChanges();
+    const element = harness.routeNativeElement as HTMLElement;
+    expect(element.querySelector('.related-products [role=alert]')?.textContent).toContain('Other products unavailable');
+    element.querySelector<HTMLButtonElement>('.related-products [role=alert] button')!.click();
+    harness.detectChanges();
+    expect(element.querySelector('.related-card')?.textContent).toContain('Ball');
+  });
+
+  it('cancels the fallback request when navigating to another product', async () => {
+    const pending = new Subject<ReturnType<typeof page<Product>>>();
+    api.getProduct.mockReturnValueOnce(of(product)).mockReturnValueOnce(of({ ...product, id: 2, categoryId: 2 }));
+    api.getProducts.mockReturnValueOnce(of(page([product])))
+      .mockReturnValueOnce(pending.asObservable())
+      .mockReturnValueOnce(of(page([{ ...product, id: 3, name: 'New related item', categoryId: 2 }])));
+    const harness = await RouterTestingHarness.create('/cricket/product/1');
+    expect(pending.observed).toBe(true);
+    await harness.navigateByUrl('/cricket/product/2');
+    expect(pending.observed).toBe(false);
+    harness.detectChanges();
+    expect((harness.routeNativeElement as HTMLElement).querySelector('.related-card')?.textContent).toContain('New related item');
   });
 
   it('shows related product loading errors and retries without hiding product details', async () => {
@@ -145,6 +210,60 @@ describe('storefront product details', () => {
     expect(description.textContent).not.toContain('<ul>');
     expect(description.querySelector('script')).toBeNull();
     expect(description.querySelector('img')?.hasAttribute('onerror')).toBe(false);
+  });
+
+  it('switches product information tabs by click and keyboard', async () => {
+    const harness = await RouterTestingHarness.create('/cricket/product/1');
+    harness.detectChanges();
+    const element = harness.routeNativeElement as HTMLElement;
+    const details = element.querySelector<HTMLButtonElement>('#details-tab')!;
+    const specs = element.querySelector<HTMLButtonElement>('#specifications-tab')!;
+    const detailsPanel = element.querySelector<HTMLElement>('#details-panel')!;
+    const specsPanel = element.querySelector<HTMLElement>('#specifications-panel')!;
+    expect(details.getAttribute('aria-selected')).toBe('true');
+    expect(detailsPanel.hidden).toBe(false);
+    expect(specsPanel.hidden).toBe(true);
+    specs.click();
+    harness.detectChanges();
+    expect(specs.getAttribute('aria-selected')).toBe('true');
+    expect(detailsPanel.hidden).toBe(true);
+    expect(specsPanel.hidden).toBe(false);
+    expect(specsPanel.textContent).toContain('Weight');
+    specs.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    harness.detectChanges();
+    expect(details.getAttribute('aria-selected')).toBe('true');
+    expect(document.activeElement).toBe(details);
+    details.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+    harness.detectChanges();
+    expect(specs.getAttribute('aria-selected')).toBe('true');
+    expect(document.activeElement).toBe(specs);
+  });
+
+  it('shows empty tab content and resets the selection on product navigation', async () => {
+    api.getProduct.mockReturnValueOnce(of(product)).mockReturnValueOnce(of({ ...product, id: 2, description: null }));
+    api.getProductAttributes.mockReturnValueOnce(of(page([{ id: 1, productId: 1, productName: 'Bat', name: 'Weight', value: '1 kg' }])))
+      .mockReturnValueOnce(of(page([{ id: 2, productId: 2, productName: 'Bat', name: 'Size', value: 'Adult' }])));
+    const harness = await RouterTestingHarness.create('/cricket/product/1');
+    harness.detectChanges();
+    (harness.routeNativeElement as HTMLElement).querySelector<HTMLButtonElement>('#specifications-tab')!.click();
+    await harness.navigateByUrl('/cricket/product/2');
+    harness.detectChanges();
+    const element = harness.routeNativeElement as HTMLElement;
+    expect(element.querySelector('#details-tab')?.getAttribute('aria-selected')).toBe('true');
+    expect(element.querySelector('#details-panel')?.textContent).toContain('No product details available');
+    (element.querySelector('#specifications-tab') as HTMLButtonElement).click();
+    harness.detectChanges();
+    expect(element.querySelector('#specifications-panel')?.textContent).toContain('Size');
+  });
+
+  it('explains when specifications are unavailable', async () => {
+    api.getProductAttributes.mockReturnValue(of(page([])));
+    const harness = await RouterTestingHarness.create('/cricket/product/1');
+    harness.detectChanges();
+    const element = harness.routeNativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('#specifications-tab')!.click();
+    harness.detectChanges();
+    expect(element.querySelector('#specifications-panel')?.textContent).toContain('No specifications available');
   });
 
   it('does not show an enabled product without an image when opened directly', async () => {

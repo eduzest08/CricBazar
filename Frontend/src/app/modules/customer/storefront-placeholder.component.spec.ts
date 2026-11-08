@@ -121,7 +121,7 @@ describe('customer catalog', () => {
     expect(component.filteredProducts.map(item => item.id)).toEqual([2]);
   });
 
-  it('shows main category radio options and counts', () => {
+  it('shows main category links and counts', () => {
     const fixture = TestBed.createComponent(StorefrontPlaceholderComponent);
     fixture.detectChanges();
     const component = fixture.componentInstance;
@@ -129,7 +129,9 @@ describe('customer catalog', () => {
     const options = element.querySelectorAll<HTMLElement>('.category-option');
     expect([...options].map(option => option.querySelector('.category-name')?.textContent?.trim())).toEqual(['Category 1', 'Category 4']);
     expect([...options].map(option => option.querySelector('.category-count')?.textContent?.trim())).toEqual(['2', '1']);
-    expect(element.querySelectorAll('.category-option input[type=radio]')).toHaveLength(2);
+    expect(element.querySelectorAll('.category-option input[type=radio]')).toHaveLength(0);
+    expect([...element.querySelectorAll<HTMLAnchorElement>('a.category-option')].map(link => link.getAttribute('href')))
+      .toEqual(['/cricket/category/1', '/cricket/category/4']);
     expect(element.querySelector('.filters-title h2')?.textContent).toContain('Filter by');
     expect(element.querySelector('.shopping-heading h3')?.textContent).toContain('Shopping options');
     expect(element.querySelectorAll('.filters input[type=checkbox], .filters input[type=number]')).toHaveLength(0);

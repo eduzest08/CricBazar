@@ -46,8 +46,12 @@ h1 { margin: 0 0 12px; font-size: clamp(22px, 2.2vw, 30px); line-height: 1.25; }
 .cart-message { color: #25834e !important; }
 .browse-link { display: inline-block; margin-top: 16px; color: #2867e9; font-size: 13px; font-weight: 700; text-decoration: none; }
 .details { margin-top: 24px; padding-top: 24px; border-top: 1px solid #e1e6ed; }
-.details h2 { margin: 0 0 16px; font-size: 22px; }
-.details h3 { margin-top: 24px; font-size: 16px; }
+.details-tabs { display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #e1e6ed; }
+.details-tabs button { padding: 12px 16px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #69758a; font-size: 15px; font-weight: 700; cursor: pointer; }
+.details-tabs button[aria-selected='true'] { border-bottom-color: #2867e9; color: #245bc1; }
+.details-tabs button:hover { color: #245bc1; }
+.details-panel { padding-top: 18px; }
+.details-empty { color: #69758a; font-size: 14px; }
 dl { margin: 0; }
 dl div { display: grid; grid-template-columns: minmax(120px, 1fr) 2fr; gap: 16px; padding: 12px; border-bottom: 1px solid #edf0f4; }
 dt { color: #69758a; } dd { margin: 0; overflow-wrap: anywhere; }

@@ -19,7 +19,7 @@
         @if (brandId !== null) { <p class="active-filter">Brand: {{ selectedBrandName }}</p> }
         <fieldset class="main-categories"><legend>Category</legend>
           @for (option of categoryOptions; track option.category.id) {
-            <label class="category-option"><input type="radio" name="mainCategory" [checked]="selectedCategoryIds.has(option.category.id)" (change)="openCategory(option.category.id)" /><span class="category-name">{{ option.category.name }}</span><span class="category-count" [attr.aria-label]="option.count + (option.count === 1 ? ' product' : ' products')" title="Active products including subcategories">{{ option.count }}</span></label>
+            <a class="category-option" [routerLink]="['/cricket/category', option.category.id]" [class.selected]="selectedCategoryIds.has(option.category.id)" [attr.aria-current]="selectedCategoryIds.has(option.category.id) ? 'page' : null"><span class="category-name">{{ option.category.name }}</span><span class="category-count" [attr.aria-label]="option.count + (option.count === 1 ? ' product' : ' products')" title="Active products including subcategories">{{ option.count }}</span><span class="category-arrow" aria-hidden="true">→</span></a>
           }
         </fieldset>
         } @else {

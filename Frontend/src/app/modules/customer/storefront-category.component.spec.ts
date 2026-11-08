@@ -35,6 +35,22 @@ describe('category product page', () => {
     });
   });
 
+  it('navigates from category links on the cricket page', async () => {
+    const harness = await RouterTestingHarness.create('/cricket');
+    harness.detectChanges();
+    const element = harness.routeNativeElement as HTMLElement;
+    const link = element.querySelector<HTMLAnchorElement>('a.category-option')!;
+    expect(link.getAttribute('href')).toBe('/cricket/category/1');
+    expect(link.textContent).toContain('Category 1');
+    expect(link.textContent).toContain('3');
+    expect(element.querySelector('.main-categories input[type=radio]')).toBeNull();
+    link.click();
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(TestBed.inject(Router).url).toBe('/cricket/category/1');
+    expect((harness.routeNativeElement as HTMLElement).querySelector('h1')?.textContent).toContain('Category 1');
+  });
+
   it('opens a category page and combines multiple brand and subcategory filters', async () => {
     const harness = await RouterTestingHarness.create('/cricket/category/1');
     harness.detectChanges();

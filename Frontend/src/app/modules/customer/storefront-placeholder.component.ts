@@ -1,7 +1,7 @@
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { EMPTY, Subscription, catchError, combineLatest, expand, forkJoin, map, of, reduce, throwError } from 'rxjs';
 import { Brand, Category, Product, ProductImage } from '../../core/models/catalog.models';
 import { CatalogApiService } from '../../core/services/catalog-api.service';
@@ -24,7 +24,6 @@ export class StorefrontPlaceholderComponent implements OnInit, OnDestroy {
   private readonly api = inject(CatalogApiService);
   readonly cart = inject(StorefrontCartService);
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private routeSubscription?: Subscription;
   private catalogSubscription?: Subscription;
@@ -271,9 +270,6 @@ export class StorefrontPlaceholderComponent implements OnInit, OnDestroy {
         ? `${product.name} is out of stock.`
         : 'This quantity is unavailable.';
     this.changeDetector.markForCheck();
-  }
-  openCategory(id: number): void {
-    void this.router.navigate(['/cricket/category', id]);
   }
   filterChanged(): void { this.page = 1; this.loadImages(); }
   setCategorySelected(id: number, selected: boolean): void {

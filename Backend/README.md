@@ -68,6 +68,10 @@ New products require an image and an explicit activation in the admin product li
 details popup, or Product Image list before appearing in the storefront. Removing the last image
 returns a product to Progress and requires activation again.
 
+Product images served from `/uploads/products/` are cacheable by browsers for one day.
+Uploads use unique filenames, so replacing an image produces a new URL. Images hosted
+elsewhere follow the cache policy of their own host.
+
 ### 2. Run API
 
 ```bash
