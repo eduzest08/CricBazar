@@ -18,7 +18,49 @@ describe('CatalogApiService product creation', () => {
     expect(request.request.params.get('hasImage')).toBe('true');
     expect(request.request.params.get('publishedOnly')).toBe('true');
     expect(request.request.params.get('pageNumber')).toBe('2');
+    expect(request.request.params.has('status')).toBe(false);
     request.flush({ items: [], pageNumber: 2, pageSize: 100, totalCount: 0 });
+    http.verify();
+  });
+
+  it('sends an optional product status without changing the existing filters', () => {
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    const api = TestBed.inject(CatalogApiService);
+    const http = TestBed.inject(HttpTestingController);
+    api.getProducts('bat', 2, 10, 'id_desc', true, undefined, undefined, false, 'progress').subscribe();
+    const request = http.expectOne(req => req.url.endsWith('/products'));
+    expect(request.request.params.get('status')).toBe('progress');
+    expect(request.request.params.get('searchTerm')).toBe('bat');
+    expect(request.request.params.get('isActive')).toBe('true');
+    request.flush({ items: [], pageNumber: 2, pageSize: 10, totalCount: 0, statusFilter: 'progress' });
+    http.verify();
+  });
+
+  it('rejects a response from an older API that ignores the status filter', () => {
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    const api = TestBed.inject(CatalogApiService);
+    const http = TestBed.inject(HttpTestingController);
+    let errorMessage = '';
+    api.getProducts('', 1, 1, 'newest', true, undefined, undefined, false, 'progress').subscribe({
+      error: (error: Error) => errorMessage = error.message,
+    });
+    http.expectOne(req => req.url.endsWith('/products')).flush({ items: [], pageNumber: 1, pageSize: 1, totalCount: 6 });
+    expect(errorMessage).toContain('Restart or update the backend API');
+    http.verify();
+  });
+
+  it('rejects a response for a different status', () => {
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    const api = TestBed.inject(CatalogApiService);
+    const http = TestBed.inject(HttpTestingController);
+    let errorMessage = '';
+    api.getProducts('', 1, 1, 'newest', true, undefined, undefined, false, 'progress').subscribe({
+      error: (error: Error) => errorMessage = error.message,
+    });
+    http.expectOne(req => req.url.endsWith('/products')).flush({
+      items: [], pageNumber: 1, pageSize: 1, totalCount: 6, statusFilter: 'active',
+    });
+    expect(errorMessage).toContain('requested status filter');
     http.verify();
   });
 

@@ -38,6 +38,55 @@ describe('ProductManagementComponent details', () => {
     }).compileComponents();
   });
 
+  it('switches between product entry and product catalog tabs', () => {
+    const fixture = TestBed.createComponent(ProductManagementComponent);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    const entryTab = element.querySelector<HTMLButtonElement>('#product-entry-tab')!;
+    const catalogTab = element.querySelector<HTMLButtonElement>('#product-catalog-tab')!;
+    const entryPanel = element.querySelector<HTMLElement>('#product-entry-panel')!;
+    const catalogPanel = element.querySelector<HTMLElement>('#product-catalog-panel')!;
+
+    expect(catalogTab.getAttribute('aria-selected')).toBe('true');
+    expect(catalogPanel.hidden).toBe(false);
+    expect(entryPanel.hidden).toBe(true);
+
+    entryTab.click();
+    fixture.detectChanges();
+    expect(entryTab.getAttribute('aria-selected')).toBe('true');
+    expect(entryPanel.hidden).toBe(false);
+    expect(catalogPanel.hidden).toBe(true);
+
+    element.querySelector<HTMLButtonElement>('.heading-actions .button-primary')!.click();
+    fixture.detectChanges();
+    expect(entryPanel.hidden).toBe(false);
+  });
+
+  it('selects a product for bulk deletion without changing its single-item action', () => {
+    const fixture = TestBed.createComponent(ProductManagementComponent);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    const selection = element.querySelector<HTMLInputElement>('input[aria-label="Select Bat"]')!;
+    selection.click();
+    fixture.detectChanges();
+    expect(selection.checked).toBe(true);
+    expect(element.querySelector('app-bulk-delete .bulk-toolbar button')?.textContent).toContain('(1)');
+    expect(element.querySelector('[aria-label="Move Bat to Inactive"]')).not.toBeNull();
+  });
+
+  it('exposes all catalog columns in a keyboard-focusable scrolling region', () => {
+    const fixture = TestBed.createComponent(ProductManagementComponent);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    const region = element.querySelector<HTMLElement>('[role="region"][aria-label="Product catalog table"]')!;
+    expect(region.getAttribute('tabindex')).toBe('0');
+    expect(element.querySelector('#' + region.getAttribute('aria-describedby'))?.textContent)
+      .toContain('scroll horizontally');
+    expect(region.querySelectorAll('thead th')).toHaveLength(13);
+    expect(region.querySelector('tbody')?.textContent).toContain('admin');
+    expect(region.querySelector('[aria-label="Move Bat to Inactive"]')).not.toBeNull();
+  });
+
   it('shows Progress for enabled products without an image and keeps inactive products inactive', () => {
     const api = TestBed.inject(CatalogApiService);
     vi.spyOn(api, 'getProducts').mockReturnValue(of({
@@ -48,6 +97,8 @@ describe('ProductManagementComponent details', () => {
     const statuses = Array.from(fixture.nativeElement.querySelectorAll('.status-pill'), (node) => (node as HTMLElement).textContent?.trim());
     expect(statuses).toEqual(['Progress', 'Inactive']);
     expect(fixture.componentInstance.productStatus({ ...product, hasImage: true })).toBe('Active');
+    expect(fixture.componentInstance.productStatus({ ...product, hasImage: true, isPublished: false })).toBe('Progress');
+    expect(fixture.componentInstance.productStatus({ ...product, hasImage: false, isPublished: true })).toBe('Progress');
   });
 
   it('warns in the list when activation fails because no image exists', () => {
@@ -235,6 +286,77 @@ describe('ProductManagementComponent details', () => {
     expect(remove).not.toHaveBeenCalled();
   });
 
+  it('loads each status view with its own count and resets pagination when switching', () => {
+    const api = TestBed.inject(CatalogApiService);
+    const inactiveProduct = { ...product, id: 2, name: 'Inactive bat', isActive: false };
+    const progressProduct = { ...product, id: 3, name: 'Progress bat', isPublished: false };
+    const items = { all: [product, progressProduct, inactiveProduct], active: [product], progress: [progressProduct], inactive: [inactiveProduct] };
+    const getProducts = vi.spyOn(api, 'getProducts').mockImplementation(
+      (_searchTerm, pageNumber = 1, pageSize = 20, _sortBy, _isActive, _categoryId, _hasImage, _publishedOnly, status = 'all') =>
+        of({ items: items[status], totalCount: items[status].length, pageNumber, pageSize }),
+    );
+    const fixture = TestBed.createComponent(ProductManagementComponent);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(fixture.componentInstance.tabCounts).toEqual({ all: 3, active: 1, progress: 1, inactive: 1 });
+    const tabs = Array.from(element.querySelectorAll<HTMLButtonElement>('[aria-label="Product status"] button'));
+    for (const [index, status, expected] of [[1, 'active', 'Bat'], [2, 'progress', 'Progress bat'], [3, 'inactive', 'Inactive bat'], [0, 'all', 'Progress bat']] as const) {
+      fixture.componentInstance.pageNumber = 2;
+      tabs[index].click();
+      fixture.detectChanges();
+      expect(getProducts).toHaveBeenLastCalledWith('', 1, 10, 'id_desc', true, undefined, undefined, false, status);
+      expect(element.querySelector('tbody')?.textContent).toContain(expected);
+      expect(fixture.componentInstance.products).toEqual(items[status]);
+    }
+  });
+
+  it('cancels stale list and count requests when search changes', () => {
+    const api = TestBed.inject(CatalogApiService);
+    const oldList = new Subject<typeof page>();
+    const oldCounts = new Subject<typeof page>();
+    vi.spyOn(api, 'getProducts').mockImplementation((search, _page, size) =>
+      search === 'old' ? (size === 1 ? oldCounts : oldList) : of({ ...page, totalCount: 4 }));
+    const fixture = TestBed.createComponent(ProductManagementComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    component.searchTerm = 'old';
+    component.loadProducts();
+    component.searchTerm = 'new';
+    component.loadProducts();
+    expect(api.getProducts).toHaveBeenCalledWith('new', 1, 1, 'newest', true, undefined, undefined, false, 'progress');
+    expect(api.getProducts).toHaveBeenLastCalledWith('new', 1, 10, 'id_desc', true, undefined, undefined, false, 'all');
+    oldCounts.next({ ...page, totalCount: 99 });
+    oldCounts.complete();
+    oldList.next({ ...page, items: [], totalCount: 0 });
+    expect(component.tabCounts).toEqual({ all: 4, active: 4, progress: 4, inactive: 4 });
+    expect(component.products).toEqual([product]);
+  });
+
+  it('reports status count failures without displaying misleading zero counts', () => {
+    const api = TestBed.inject(CatalogApiService);
+    vi.spyOn(api, 'getProducts').mockImplementation((_search, _page, size) =>
+      size === 1 ? throwError(() => new Error('Counts unavailable')) : of(page));
+    const fixture = TestBed.createComponent(ProductManagementComponent);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.tabCounts.all).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('#product-catalog-panel [role="alert"]')?.textContent).toContain('Counts unavailable');
+    expect(fixture.componentInstance.products).toEqual([product]);
+  });
+
+  it('does not display stale products under a status whose list failed to load', () => {
+    const api = TestBed.inject(CatalogApiService);
+    vi.spyOn(api, 'getProducts').mockImplementation((_search, _page, size, _sort, _active, _category, _image, _published, status) =>
+      size !== 1 && status === 'inactive' ? throwError(() => new Error('List unavailable')) : of(page));
+    const fixture = TestBed.createComponent(ProductManagementComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.selectTab('inactive');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.products).toEqual([]);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('List unavailable');
+    expect((fixture.nativeElement as HTMLElement).querySelector('tbody')).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.empty-state')).toBeNull();
+  });
+
   it('keeps the active product soft-delete action', () => {
     const api = TestBed.inject(CatalogApiService);
     const softDelete = vi.spyOn(api, 'deleteProduct');
@@ -273,7 +395,7 @@ describe('ProductManagementComponent details', () => {
     completed.complete();
     expect(component.pageNumber).toBe(1);
     expect(component.successMessage).toContain('permanently deleted');
-    expect(get).toHaveBeenCalledWith('', 1, 1, 'id_desc', false);
+    expect(get).toHaveBeenCalledWith('', 1, 1, 'id_desc', true, undefined, undefined, false, 'inactive');
   });
 
   it('surfaces a permanent deletion failure and keeps the product', () => {
@@ -294,18 +416,18 @@ describe('ProductManagementComponent details', () => {
     const getProducts = vi.spyOn(api, 'getProducts');
     const fixture = TestBed.createComponent(ProductManagementComponent);
     fixture.detectChanges();
-    expect(getProducts).toHaveBeenCalledWith('', 1, 10, 'id_desc', true);
+    expect(getProducts).toHaveBeenCalledWith('', 1, 10, 'id_desc', true, undefined, undefined, false, 'all');
     const element = fixture.nativeElement as HTMLElement;
     const header = Array.from(element.querySelectorAll('th'))
       .find((item) => item.textContent?.includes('PRODUCT NO.'))!;
     expect(header.getAttribute('aria-sort')).toBe('descending');
     expect(header.textContent).toContain('▼');
     header.querySelector('button')!.click();
-    expect(getProducts).toHaveBeenLastCalledWith('', 1, 10, 'id_asc', true);
+    expect(getProducts).toHaveBeenLastCalledWith('', 1, 10, 'id_asc', true, undefined, undefined, false, 'all');
     fixture.componentInstance.selectTab('inactive');
-    expect(getProducts).toHaveBeenLastCalledWith('', 1, 10, 'id_asc', false);
+    expect(getProducts).toHaveBeenLastCalledWith('', 1, 10, 'id_asc', true, undefined, undefined, false, 'inactive');
     fixture.componentInstance.sort('name');
-    expect(getProducts).toHaveBeenLastCalledWith('', 1, 10, 'name_asc', false);
+    expect(getProducts).toHaveBeenLastCalledWith('', 1, 10, 'name_asc', true, undefined, undefined, false, 'inactive');
   });
 
   it('reports an export failure and re-enables the download buttons', async () => {

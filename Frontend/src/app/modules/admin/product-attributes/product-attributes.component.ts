@@ -9,6 +9,7 @@ import {
 } from '../../../core/models/catalog.models';
 import { getApiErrorMessage } from '../../../core/utils/api-error';
 import { ActionIconComponent } from '../shared/action-icon.component';
+import { BulkDeleteComponent } from '../shared/bulk-delete.component';
 
 function emptyAttributeDraft(): ProductAttributeDraft {
   return { productId: null, name: '', value: '' };
@@ -16,7 +17,7 @@ function emptyAttributeDraft(): ProductAttributeDraft {
 
 @Component({
   selector: 'app-product-attributes',
-  imports: [FormsModule, ActionIconComponent],
+  imports: [FormsModule, ActionIconComponent, BulkDeleteComponent],
   templateUrl: './product-attributes.component.html',
   styleUrl: './product-attributes.component.scss',
 })
@@ -37,6 +38,7 @@ export class ProductAttributesComponent implements OnInit {
   sortDirection: 'asc' | 'desc' = 'asc';
   draft = emptyAttributeDraft();
   editingId: number | null = null;
+  pageView: 'entry' | 'list' = 'list';
   activeTab: 'active' | 'inactive' = 'active';
   filterProducts: Product[] = [];
   loading = false;
@@ -187,6 +189,7 @@ export class ProductAttributesComponent implements OnInit {
 
   edit(attribute: ProductAttribute): void {
     this.editingId = attribute.id;
+    this.pageView = 'entry';
     this.draft = {
       productId: attribute.productId,
       name: attribute.name,
@@ -194,12 +197,17 @@ export class ProductAttributesComponent implements OnInit {
     };
     this.errorMessage = '';
     this.successMessage = '';
-    document.querySelector('.editor-card')?.scrollIntoView({ behavior: 'smooth' });
+    document.querySelector<HTMLElement>('.management-tabs')?.scrollIntoView?.({ behavior: 'smooth' });
   }
 
   reset(): void {
     this.editingId = null;
+    this.pageView = 'entry';
     this.draft = emptyAttributeDraft();
+  }
+
+  selectPageView(view: 'entry' | 'list'): void {
+    this.pageView = view;
   }
 
   save(): void {
@@ -222,6 +230,7 @@ export class ProductAttributesComponent implements OnInit {
       next: () => {
         this.successMessage = isCreate ? 'Attribute created.' : 'Attribute changes saved.';
         this.reset();
+        this.pageView = 'list';
         this.saving = false;
         this.loadAttributes();
         this.changeDetector.markForCheck();
@@ -232,6 +241,14 @@ export class ProductAttributesComponent implements OnInit {
         this.changeDetector.markForCheck();
       },
     });
+  }
+
+  bulkDeleted(ids: number[]): void {
+    if (this.editingId !== null && ids.includes(this.editingId)) {
+      this.reset();
+      this.pageView = 'list';
+    }
+    this.loadAttributes();
   }
 
   delete(attribute: ProductAttribute): void {

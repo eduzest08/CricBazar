@@ -9,6 +9,7 @@ import {
 } from '../../../core/models/catalog.models';
 import { getApiErrorMessage } from '../../../core/utils/api-error';
 import { ActionIconComponent } from '../shared/action-icon.component';
+import { BulkDeleteComponent } from '../shared/bulk-delete.component';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -30,7 +31,7 @@ interface SelectedImage {
 
 @Component({
   selector: 'app-product-images',
-  imports: [FormsModule, ActionIconComponent],
+  imports: [FormsModule, ActionIconComponent, BulkDeleteComponent],
   templateUrl: './product-images.component.html',
   styleUrl: './product-images.component.scss',
 })
@@ -62,6 +63,7 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
   previewUrl = '';
   draft = emptyImageDraft();
   editingId: number | null = null;
+  pageView: 'entry' | 'list' = 'list';
   activeTab: 'active' | 'inactive' = 'active';
   filterProducts: Product[] = [];
   loading = false;
@@ -208,6 +210,10 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
 
   get visibleGroups(): ImageGroup[] {
     return this.imageGroups.slice((this.pageNumber - 1) * this.pageSize, this.pageNumber * this.pageSize);
+  }
+
+  get visiblePageImages(): ProductImage[] {
+    return this.visibleGroups.flatMap(group => group.images);
   }
 
   isExpanded(productId: number): boolean {
@@ -515,11 +521,12 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
     this.sortOrderLoading = false;
     this.sortOrderError = '';
     this.editingId = image.id;
+    this.pageView = 'entry';
     this.draft = { productId: image.productId, url: image.url, sortOrder: image.sortOrder };
     this.errorMessage = '';
     this.successMessage = '';
     this.setFile(null);
-    document.querySelector('.editor-card')?.scrollIntoView({ behavior: 'smooth' });
+    document.querySelector<HTMLElement>('.management-tabs')?.scrollIntoView?.({ behavior: 'smooth' });
   }
 
   reset(): void {
@@ -529,8 +536,13 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
     this.sortOrderLoading = false;
     this.sortOrderError = '';
     this.editingId = null;
+    this.pageView = 'entry';
     this.draft = emptyImageDraft();
     this.setFile(null);
+  }
+
+  selectPageView(view: 'entry' | 'list'): void {
+    this.pageView = view;
   }
 
   save(): void {
@@ -588,6 +600,7 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
       complete: () => {
         this.saving = false;
         this.reset();
+        this.pageView = 'list';
         this.successMessage = `${total} image(s) added.`;
         this.loadImages();
         this.changeDetector.markForCheck();
@@ -620,6 +633,7 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
         this.successMessage = isCreate ? 'Image added.' : 'Image changes saved.';
         this.saving = false;
         this.reset();
+        this.pageView = 'list';
         this.loadImages();
         this.changeDetector.markForCheck();
       },
@@ -631,6 +645,14 @@ export class ProductImagesComponent implements OnInit, OnDestroy {
     this.errorMessage = getApiErrorMessage(error);
     this.saving = false;
     this.changeDetector.markForCheck();
+  }
+
+  bulkDeleted(ids: number[]): void {
+    if (this.editingId !== null && ids.includes(this.editingId)) {
+      this.reset();
+      this.pageView = 'list';
+    }
+    this.loadImages();
   }
 
   delete(image: ProductImage): void {

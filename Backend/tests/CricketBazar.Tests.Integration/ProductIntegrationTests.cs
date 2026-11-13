@@ -43,6 +43,59 @@ public class ProductIntegrationTests : IClassFixture<ProductApiFactory>
     }
 
     [Fact]
+    public async Task StatusViews_FilterBeforeCountingAndPaging_AndComposeWithOtherFilters()
+    {
+        var prefix = "Status " + Uniq();
+        var ids = new List<int>();
+        try
+        {
+            for (var i = 0; i < 5; i++)
+                ids.Add((await CreateAsync($"{prefix} {i}")).id);
+
+            foreach (var id in new[] { ids[0], ids[1], ids[4] })
+            {
+                var response = await _client.PostAsJsonAsync("/api/v1/product-images",
+                    new { productId = id, url = "https://example.com/status-test.jpg", sortOrder = 0 });
+                Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            }
+            Assert.Equal(HttpStatusCode.NoContent, (await _client.PostAsync($"{Url}/{ids[0]}/activate", null)).StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, (await _client.DeleteAsync($"{Url}/{ids[4]}")).StatusCode);
+            using (var connection = _factory.Services.GetRequiredService<ISqlConnectionFactory>().GetConnection())
+            {
+                await connection.ExecuteAsync("UPDATE dbo.Products SET IsPublished = 1 WHERE Id = @Id", new { Id = ids[2] });
+            }
+
+            async Task<JsonElement> Get(string query) => await _client.GetFromJsonAsync<JsonElement>(
+                $"{Url}?searchTerm={Uri.EscapeDataString(prefix)}&sortBy=id_asc&{query}");
+            async Task AssertIds(string query, int total, params int[] expected)
+            {
+                var page = await Get(query);
+                Assert.Equal(total, page.GetProperty("totalCount").GetInt32());
+                if (query.StartsWith("status=", StringComparison.Ordinal))
+                    Assert.Equal(query["status=".Length..].Split('&')[0], page.GetProperty("statusFilter").GetString());
+                Assert.Equal(expected, page.GetProperty("items").EnumerateArray().Select(p => p.GetProperty("id").GetInt32()).ToArray());
+            }
+
+            await AssertIds("status=all&pageSize=2&pageNumber=2", 5, ids[2], ids[3]);
+            await AssertIds("status=active", 1, ids[0]);
+            await AssertIds("status=progress", 3, ids[1], ids[2], ids[3]);
+            await AssertIds("status=inactive", 1, ids[4]);
+            await AssertIds("status=progress&hasImage=true", 1, ids[1]);
+            await AssertIds("status=progress&publishedOnly=true", 1, ids[2]);
+            await AssertIds("isActive=true", 4, ids[0], ids[1], ids[2], ids[3]);
+            Assert.Equal(HttpStatusCode.BadRequest, (await _client.GetAsync($"{Url}?status=invalid")).StatusCode);
+        }
+        finally
+        {
+            foreach (var id in ids)
+            {
+                await _client.DeleteAsync($"{Url}/{id}");
+                await _client.DeleteAsync($"{Url}/{id}/permanent");
+            }
+        }
+    }
+
+    [Fact]
     public async Task ImagePresence_FiltersStorefrontAndTracksLastImage()
     {
         var (id, _, name) = await CreateAsync();

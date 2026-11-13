@@ -15,7 +15,7 @@ describe('CategoryManagementComponent hierarchy', () => {
   let items: Category[];
   const api = {
     getCategories: () => of(items),
-    deleteCategory: vi.fn(() => of(undefined)),
+    deleteCategory: vi.fn((_id: number) => of(undefined)),
     reorderCategories: vi.fn(() => of<void>(undefined)),
   };
 
@@ -26,6 +26,20 @@ describe('CategoryManagementComponent hierarchy', () => {
       imports: [CategoryManagementComponent],
       providers: [{ provide: CatalogApiService, useValue: api }],
     }).compileComponents();
+  });
+
+  it('selects collapsed categories on the current page and deletes children before parents', () => {
+    const fixture = TestBed.createComponent(CategoryManagementComponent);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelectorAll('tbody tr')).toHaveLength(2);
+    element.querySelector<HTMLInputElement>('app-bulk-delete input')!.click();
+    fixture.detectChanges();
+    element.querySelector<HTMLButtonElement>('app-bulk-delete .bulk-toolbar button')!.click();
+    fixture.detectChanges();
+    expect(element.querySelector('app-bulk-delete [role=dialog]')?.textContent).toContain('Selected IDs: 4, 3, 2, 1');
+    element.querySelector<HTMLButtonElement>('app-bulk-delete .bulk-confirm')!.click();
+    expect(api.deleteCategory.mock.calls.map(([id]) => id)).toEqual([4, 3, 2, 1]);
   });
 
   it('expands and collapses multiple levels while preserving child actions', () => {

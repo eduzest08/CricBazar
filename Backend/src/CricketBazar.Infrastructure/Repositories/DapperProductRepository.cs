@@ -188,7 +188,8 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
         string sortBy = "newest",
         bool isActive = true,
         bool? hasImage = null,
-        bool publishedOnly = false)
+        bool publishedOnly = false,
+        ProductListStatus? status = null)
     {
         if (pageNumber < 1) pageNumber = 1;
         if (pageSize < 1) pageSize = 10;
@@ -196,9 +197,30 @@ public class DapperProductRepository : DapperRepository<Product>, IProductReposi
 
         var offset = (pageNumber - 1) * pageSize;
 
-        var whereConditions = new List<string> { "IsActive = @IsActive" };
+        var imageExists = "EXISTS (SELECT 1 FROM dbo.ProductImages pi WHERE pi.ProductId = dbo.Products.Id)";
+        var whereConditions = new List<string>();
         var parameters = new DynamicParameters();
-        parameters.Add("@IsActive", isActive);
+        switch (status)
+        {
+            case null:
+                whereConditions.Add("IsActive = @IsActive");
+                parameters.Add("@IsActive", isActive);
+                break;
+            case ProductListStatus.All:
+                whereConditions.Add("1 = 1");
+                break;
+            case ProductListStatus.Active:
+                whereConditions.Add($"IsActive = 1 AND IsPublished = 1 AND {imageExists}");
+                break;
+            case ProductListStatus.Progress:
+                whereConditions.Add($"IsActive = 1 AND (IsPublished = 0 OR NOT {imageExists})");
+                break;
+            case ProductListStatus.Inactive:
+                whereConditions.Add("IsActive = 0");
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(status), status, "Invalid product status.");
+        }
         if (publishedOnly) whereConditions.Add("IsPublished = 1");
         if (hasImage.HasValue)
         {

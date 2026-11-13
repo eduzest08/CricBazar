@@ -17,6 +17,29 @@
   </div>
 </div>
 
+<div class="tabs page-tabs management-tabs" role="tablist" aria-label="Product management views">
+  <button
+    id="product-entry-tab"
+    class="tab-button management-tab-button"
+    type="button"
+    role="tab"
+    [class.active]="pageTab === 'entry'"
+    [attr.aria-selected]="pageTab === 'entry'"
+    aria-controls="product-entry-panel"
+    (click)="selectPageTab('entry')"
+  ><app-action-icon name="entry" /> Product entry</button>
+  <button
+    id="product-catalog-tab"
+    class="tab-button management-tab-button"
+    type="button"
+    role="tab"
+    [class.active]="pageTab === 'catalog'"
+    [attr.aria-selected]="pageTab === 'catalog'"
+    aria-controls="product-catalog-panel"
+    (click)="selectPageTab('catalog')"
+  ><app-action-icon name="list" /> Product catalog</button>
+</div>
+
 @if (errorMessage) {
   <div class="alert alert-error" role="alert">{{ errorMessage }}</div>
 }
@@ -24,7 +47,13 @@
   <div class="alert alert-success" role="status">{{ successMessage }}</div>
 }
 
-<section class="editor-card">
+<section
+  id="product-entry-panel"
+  class="editor-card"
+  role="tabpanel"
+  aria-labelledby="product-entry-tab"
+  [hidden]="pageTab !== 'entry'"
+>
   <div class="section-heading">
     <div>
       <h2>{{ editingId === null ? 'Create a product' : 'Edit product' }}</h2>
@@ -175,7 +204,13 @@
   </form>
 </section>
 
-<section class="table-card">
+<section
+  id="product-catalog-panel"
+  class="table-card"
+  role="tabpanel"
+  aria-labelledby="product-catalog-tab"
+  [hidden]="pageTab !== 'catalog'"
+>
   @if (!viewerProduct && activationError) {
     <div class="alert alert-error" role="alert">
       {{ activationError }}
@@ -194,20 +229,33 @@
     </form>
   </div>
 
-  <div class="tabs" role="tablist">
-    <button class="tab-button" type="button" role="tab" [class.active]="activeTab === 'active'" [attr.aria-selected]="activeTab === 'active'" (click)="selectTab('active')">Active &amp; Progress ({{ tabCounts.active }})</button>
-    <button class="tab-button" type="button" role="tab" [class.active]="activeTab === 'inactive'" [attr.aria-selected]="activeTab === 'inactive'" (click)="selectTab('inactive')">Inactive ({{ tabCounts.inactive }})</button>
+  <div class="tabs" role="tablist" aria-label="Product status">
+    <button class="tab-button" type="button" role="tab" [disabled]="bulk.busy" [class.active]="activeTab === 'all'" [attr.aria-selected]="activeTab === 'all'" (click)="bulk.resetSelection(); selectTab('all')">All ({{ tabCounts.all ?? '–' }})</button>
+    <button class="tab-button" type="button" role="tab" [disabled]="bulk.busy" [class.active]="activeTab === 'active'" [attr.aria-selected]="activeTab === 'active'" (click)="bulk.resetSelection(); selectTab('active')">Active ({{ tabCounts.active ?? '–' }})</button>
+    <button class="tab-button" type="button" role="tab" [disabled]="bulk.busy" [class.active]="activeTab === 'progress'" [attr.aria-selected]="activeTab === 'progress'" (click)="bulk.resetSelection(); selectTab('progress')">Progress ({{ tabCounts.progress ?? '–' }})</button>
+    <button class="tab-button" type="button" role="tab" [disabled]="bulk.busy" [class.active]="activeTab === 'inactive'" [attr.aria-selected]="activeTab === 'inactive'" (click)="bulk.resetSelection(); selectTab('inactive')">Inactive ({{ tabCounts.inactive ?? '–' }})</button>
   </div>
+  @if (countsError) { <div class="alert alert-error" role="alert">{{ countsError }}</div> }
 
+  <app-bulk-delete #bulk="bulkDelete" kind="product" [items]="products" [disabled]="loading || saving || deletingProduct || !!errorMessage" (completed)="bulkDeleted($event)" />
   @if (loading) {
     <div class="inline-loader" role="status">Loading products…</div>
-  } @else if (!products.length) {
-    <div class="empty-state">{{ activeTab === 'active' ? 'No active products found. Create your first catalog item above.' : 'No inactive products.' }}</div>
-  } @else {
-    <div class="table-scroll">
-      <table>
+  } @else if (!products.length && !errorMessage) {
+    <div class="empty-state">No {{ activeTab === 'all' ? '' : activeTab + ' ' }}products found.</div>
+  } @else if (products.length) {
+    <p class="table-scroll-hint" id="product-table-hint">On narrow screens, scroll horizontally to see all columns.</p>
+    <div class="table-scroll" role="region" aria-label="Product catalog table" aria-describedby="product-table-hint" tabindex="0">
+      <table class="product-table">
+        <colgroup>
+          <col class="select-column" /><col class="id-column" /><col class="name-column" />
+          <col class="sku-column" /><col class="category-column" /><col class="price-column" />
+          <col class="cost-column" /><col class="stock-column" /><col class="status-column" />
+          <col class="date-column" /><col class="date-column" /><col class="creator-column" />
+          <col class="actions-column" />
+        </colgroup>
         <thead>
           <tr>
+            <th><span class="sr-only">Select</span></th>
             <th [attr.aria-sort]="ariaSort('id')"><button class="sort-button" type="button" (click)="sort('id')">PRODUCT NO. {{ sortIndicator('id') }}</button></th>
             <th [attr.aria-sort]="ariaSort('name')"><button class="sort-button" type="button" (click)="sort('name')">PRODUCT {{ sortIndicator('name') }}</button></th>
             <th [attr.aria-sort]="ariaSort('sku')"><button class="sort-button" type="button" (click)="sort('sku')">SKU {{ sortIndicator('sku') }}</button></th>
@@ -225,6 +273,7 @@
         <tbody>
           @for (product of products; track product.id) {
             <tr>
+              <td><input type="checkbox" [checked]="bulk.selected.has(product.id)" [disabled]="bulk.disabled || bulk.busy" [attr.aria-label]="'Select ' + product.name" (change)="bulk.toggle(product.id)" /></td>
               <td>{{ product.id }}</td>
               <td>
                 <strong>{{ product.name }}</strong>

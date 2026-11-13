@@ -12,6 +12,8 @@ public enum PermanentProductDeleteResult
 
 public enum ActivateProductResult { Activated, NotFound, MissingImage }
 
+public enum ProductListStatus { All, Active, Progress, Inactive }
+
 public interface IProductRepository
 {
     Task<Product?> GetByIdAsync(int id);
@@ -26,7 +28,7 @@ public interface IProductRepository
     Task<Product?> GetBySlugAsync(string slug);
     Task<IEnumerable<Product>> GetByCategoryAsync(int categoryId);
     Task<IEnumerable<Product>> GetByBrandAsync(int brandId);
-    Task<(IEnumerable<Product> items, int totalCount)> SearchAsync(string? search = null, int? categoryId = null, int? brandId = null, decimal? minPrice = null, decimal? maxPrice = null, int pageNumber = 1, int pageSize = 20, string sortBy = "newest", bool isActive = true, bool? hasImage = null, bool publishedOnly = false);
+    Task<(IEnumerable<Product> items, int totalCount)> SearchAsync(string? search = null, int? categoryId = null, int? brandId = null, decimal? minPrice = null, decimal? maxPrice = null, int pageNumber = 1, int pageSize = 20, string sortBy = "newest", bool isActive = true, bool? hasImage = null, bool publishedOnly = false, ProductListStatus? status = null);
 }
 
 public interface ICategoryRepository

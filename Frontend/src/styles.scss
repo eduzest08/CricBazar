@@ -2,6 +2,51 @@
 
 @include admin.page-styles;
 
+.admin-shell .bulk-group-note {
+  margin: 0 20px 12px;
+  color: #68727d;
+  font-size: 11px;
+}
+
+.admin-shell .management-tabs {
+  display: flex;
+  gap: 0;
+  margin: 0 0 20px;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.admin-shell .management-tab-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: #535c65;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  transition: border-color 120ms ease, color 120ms ease;
+
+  &.active {
+    border-bottom-color: var(--theme-link);
+    color: var(--theme-link);
+  }
+
+  &:hover {
+    color: var(--theme-link);
+    background: #f5f6f7;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--theme-focus);
+    outline-offset: -2px;
+  }
+}
+
 .admin-shell {
   --sidebar-start: #17362a; --sidebar-mid: #10291f; --sidebar-end: #0b1c16;
   --theme-accent: #c9ef77; --theme-accent-hover: #bce85c; --theme-accent-light: #e1faab; --theme-accent-dark: #b9e46f;

@@ -40,6 +40,20 @@ describe('ProductImagesComponent viewer', () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
+  it('selects all images in collapsed groups on the current page', () => {
+    const fixture = TestBed.createComponent(ProductImagesComponent);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelectorAll('tbody tr')).toHaveLength(1);
+    element.querySelector<HTMLInputElement>('app-bulk-delete input')!.click();
+    fixture.detectChanges();
+    element.querySelector<HTMLButtonElement>('app-bulk-delete .bulk-toolbar button')!.click();
+    fixture.detectChanges();
+    expect(element.querySelector('app-bulk-delete [role=dialog]')?.textContent).toContain('Selected IDs: 1, 2');
+    element.querySelector<HTMLButtonElement>('app-bulk-delete .bulk-confirm')!.click();
+    expect(api.deleteProductImage.mock.calls.map(([id]) => id)).toEqual([1, 2]);
+  });
+
   it('displays saved image counts in the product dropdown and refreshes them after changes', async () => {
     const emptyProduct = { ...product, id: 20, name: 'Ball', isActive: false };
     api.getProducts.mockReturnValue(of({ items: [product, emptyProduct], totalCount: 2, pageNumber: 1, pageSize: 100 }));

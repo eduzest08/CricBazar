@@ -1,4 +1,13 @@
 <div class="admin-shell" [class.collapsed]="sidebarCollapsed" [attr.data-theme]="theme">
+  <div class="window-titlebar">
+    <a class="window-app" routerLink="/admin/dashboard" aria-label="CricBazar Admin home">
+      <span class="window-icon" aria-hidden="true">CB</span>
+      <span>CricBazar</span>
+      <span class="window-divider" aria-hidden="true"></span>
+      <span class="window-section">Admin</span>
+    </a>
+    <span class="window-context">Catalog workspace</span>
+  </div>
   <aside class="sidebar">
     <a class="brand-mark" routerLink="/admin/dashboard" aria-label="CricBazar admin home">
       <span class="brand-icon" aria-hidden="true">CB</span>

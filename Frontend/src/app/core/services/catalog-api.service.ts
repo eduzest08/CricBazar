@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../auth/auth.service';
 import {
@@ -11,6 +11,7 @@ import {
   CategoryDraft,
   PaginatedResponse,
   Product,
+  ProductListStatus,
   ProductAttribute,
   ProductAttributePayload,
   ProductAttributeQuery,
@@ -41,6 +42,7 @@ export class CatalogApiService {
     categoryId?: number,
     hasImage?: boolean,
     publishedOnly = false,
+    status?: ProductListStatus,
   ): Observable<PaginatedResponse<Product>> {
     let params = new HttpParams()
       .set('pageNumber', pageNumber)
@@ -59,10 +61,18 @@ export class CatalogApiService {
     if (publishedOnly) {
       params = params.set('publishedOnly', true);
     }
+    if (status !== undefined) {
+      params = params.set('status', status);
+    }
 
     return this.http.get<PaginatedResponse<Product>>(`${this.baseUrl}/products`, {
       params,
-    });
+    }).pipe(map(page => {
+      if (status !== undefined && page.statusFilter !== status) {
+        throw new Error('The product API does not support the requested status filter. Restart or update the backend API and try again.');
+      }
+      return page;
+    }));
   }
 
   getProduct(id: number): Observable<Product> {

@@ -3,14 +3,14 @@
 
   h1 {
     margin: 7px 0 5px;
-    color: #1a2c21;
-    font-size: 30px;
-    letter-spacing: -0.045em;
+    color: #24292f;
+    font-size: 27px;
+    letter-spacing: -0.035em;
   }
 
   p {
     margin: 0;
-    color: #77857b;
+    color: #68727d;
     font-size: 12px;
   }
 }
@@ -37,10 +37,10 @@
   display: grid;
   gap: 8px;
   border: 1px solid var(--theme-border, #e6ebe7);
-  border-radius: 12px;
+  border-radius: 6px;
   padding: 22px 24px;
   background: #fff;
-  box-shadow: 0 5px 16px rgb(23 50 35 / 3%);
+  box-shadow: 0 1px 2px rgb(23 33 44 / 5%);
   color: inherit;
   text-decoration: none;
 
@@ -49,13 +49,13 @@
   }
 
   span {
-    color: #77857b;
+    color: #68727d;
     font-size: 12px;
     font-weight: 600;
   }
 
   strong {
-    color: #1a2c21;
+    color: #24292f;
     font-size: 32px;
     letter-spacing: -0.04em;
   }

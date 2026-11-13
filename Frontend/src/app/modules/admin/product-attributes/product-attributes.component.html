@@ -16,7 +16,12 @@
   <div class="alert alert-success" role="status">{{ successMessage }}</div>
 }
 
-<section class="editor-card">
+<div class="management-tabs" role="tablist" aria-label="Product attribute management">
+  <button id="attribute-entry-tab" class="management-tab-button" type="button" role="tab" [class.active]="pageView === 'entry'" [attr.aria-selected]="pageView === 'entry'" aria-controls="attribute-entry-panel" (click)="selectPageView('entry')"><app-action-icon name="entry" /> Entry</button>
+  <button id="attribute-list-tab" class="management-tab-button" type="button" role="tab" [class.active]="pageView === 'list'" [attr.aria-selected]="pageView === 'list'" aria-controls="attribute-list-panel" (click)="selectPageView('list')"><app-action-icon name="list" /> List</button>
+</div>
+
+<section id="attribute-entry-panel" class="editor-card" role="tabpanel" aria-labelledby="attribute-entry-tab" [hidden]="pageView !== 'entry'">
   <div class="section-heading">
     <div>
       <h2>{{ editingId === null ? 'Create an attribute' : 'Edit attribute' }}</h2>
@@ -56,7 +61,7 @@
   </form>
 </section>
 
-<section class="table-card">
+<section id="attribute-list-panel" class="table-card" role="tabpanel" aria-labelledby="attribute-list-tab" [hidden]="pageView !== 'list'">
   <div class="table-toolbar">
     <div>
       <h2>All attributes</h2>
@@ -85,15 +90,18 @@
     <button class="tab-button" type="button" role="tab" [class.active]="activeTab === 'inactive'" [attr.aria-selected]="activeTab === 'inactive'" (click)="selectTab('inactive')">Inactive ({{ tabCounts.inactive }})</button>
   </div>
 
+  <app-bulk-delete #bulk="bulkDelete" kind="attribute" [items]="attributes" [disabled]="loading || saving || !!errorMessage" (completed)="bulkDeleted($event)" />
   @if (loading) {
     <div class="inline-loader" role="status">Loading attributes…</div>
   } @else if (!attributes.length) {
     <div class="empty-state">No attributes found. Create your first attribute above.</div>
   } @else {
-    <div class="table-scroll">
+    <p class="table-scroll-hint" id="attribute-table-hint">On narrow screens, scroll horizontally to see all columns.</p>
+    <div class="table-scroll" role="region" aria-label="Product attributes table" aria-describedby="attribute-table-hint" tabindex="0">
       <table>
         <thead>
           <tr>
+            <th><span class="sr-only">Select</span></th>
             <th [attr.aria-sort]="ariaSort('product')"><button class="sort-button" type="button" (click)="sort('product')">PRODUCT {{ sortIndicator('product') }}</button></th>
             <th [attr.aria-sort]="ariaSort('name')"><button class="sort-button" type="button" (click)="sort('name')">ATTRIBUTE {{ sortIndicator('name') }}</button></th>
             <th [attr.aria-sort]="ariaSort('value')"><button class="sort-button" type="button" (click)="sort('value')">VALUE {{ sortIndicator('value') }}</button></th>
@@ -103,6 +111,7 @@
         <tbody>
           @for (attribute of attributes; track attribute.id) {
             <tr>
+              <td><input type="checkbox" [checked]="bulk.selected.has(attribute.id)" [disabled]="bulk.disabled || bulk.busy" [attr.aria-label]="'Select attribute ' + attribute.name + ' for ' + attribute.productName" (change)="bulk.toggle(attribute.id)" /></td>
               <td><strong>{{ attribute.productName }}</strong><small>#{{ attribute.id }}</small></td>
               <td>{{ attribute.name }}</td>
               <td>{{ attribute.value }}</td>

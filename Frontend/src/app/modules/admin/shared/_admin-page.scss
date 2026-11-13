@@ -14,14 +14,14 @@
 
     h1 {
       margin: 7px 0 5px;
-      color: #1a2c21;
-      font-size: 30px;
-      letter-spacing: -0.045em;
+      color: #24292f;
+      font-size: 27px;
+      letter-spacing: -0.035em;
     }
 
     p {
       margin: 0;
-      color: #77857b;
+      color: #68727d;
       font-size: 12px;
     }
   }
@@ -36,9 +36,9 @@
   .editor-card,
   .table-card {
     border: 1px solid var(--theme-border, #e6ebe7);
-    border-radius: 12px;
+    border-radius: 6px;
     background: #fff;
-    box-shadow: 0 5px 16px rgb(23 50 35 / 3%);
+    box-shadow: 0 1px 2px rgb(23 33 44 / 5%);
   }
 
   .editor-card {
@@ -52,14 +52,14 @@
     h2,
     .table-toolbar h2 {
       margin: 0 0 5px;
-      color: #203328;
+      color: #2e363e;
       font-size: 15px;
       letter-spacing: -0.015em;
     }
 
     p {
       margin: 0;
-      color: #77857b;
+      color: #68727d;
       font-size: 11px;
     }
   }
@@ -80,7 +80,7 @@
     display: grid;
     align-content: start;
     gap: 7px;
-    color: #46564b;
+    color: #424a52;
     font-size: 11px;
     font-weight: 700;
 
@@ -98,11 +98,11 @@
   textarea {
     width: 100%;
     min-width: 0;
-    border: 1px solid #dfe6e0;
-    border-radius: 7px;
+    border: 1px solid #d5d9de;
+    border-radius: 4px;
     outline: none;
     padding: 10px 11px;
-    color: #24352a;
+    color: #24292f;
     background: #fff;
     font: inherit;
     font-size: 12px;
@@ -111,7 +111,7 @@
 
     &:focus {
       border-color: var(--theme-focus, #789d45);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-focus, #789d45) 15%, transparent);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-focus, #789d45) 22%, transparent);
     }
 
     &::placeholder {
@@ -133,7 +133,7 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    color: #53645a;
+    color: #535c65;
     font-size: 12px;
     font-weight: 600;
 
@@ -144,17 +144,17 @@
 
   .button {
     display: inline-flex;
-    min-height: 36px;
+    min-height: 32px;
     align-items: center;
     justify-content: center;
     gap: 7px;
     border: 1px solid transparent;
-    border-radius: 7px;
+    border-radius: 4px;
     padding: 0 13px;
     cursor: pointer;
     font: inherit;
     font-size: 11px;
-    font-weight: 750;
+    font-weight: 600;
     text-decoration: none;
     transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
 
@@ -179,12 +179,12 @@
 
   .button-secondary {
     border-color: #dfe6e0;
-    color: #405147;
+    color: #424a52;
     background: #fff;
 
     &:hover {
-      border-color: #bcc9be;
-      background: #f7faf7;
+      border-color: #b7bec6;
+      background: #f5f6f7;
     }
   }
 
@@ -229,16 +229,17 @@
 
   .table-toolbar {
     padding: 19px 22px;
+    flex-wrap: wrap;
 
     h2 {
       margin: 0 0 5px;
-      color: #203328;
+      color: #2e363e;
       font-size: 15px;
     }
 
     p {
       margin: 0;
-      color: #77857b;
+      color: #68727d;
       font-size: 11px;
     }
   }
@@ -246,24 +247,28 @@
   .search-form {
     display: flex;
     width: min(360px, 50%);
+    max-width: 100%;
     gap: 8px;
+    flex-wrap: wrap;
 
     &:has(select) {
       width: min(700px, 70%);
     }
 
     select {
-      flex: 0 0 170px;
+      flex: 1 1 130px;
+      min-width: 0;
+      width: auto;
     }
 
     input {
-      min-width: 160px;
-      flex: 1;
-      border: 1px solid #dfe6e0;
-      border-radius: 7px;
+      min-width: 0;
+      flex: 1 1 140px;
+      border: 1px solid #d5d9de;
+      border-radius: 4px;
       outline: none;
       padding: 9px 11px;
-      color: #24352a;
+      color: #24292f;
       font: inherit;
       font-size: 11px;
 
@@ -284,48 +289,69 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
     padding: 14px 20px;
     border-top: 1px solid #edf0ed;
-    color: #77857b;
+    color: #68727d;
     font-size: 11px;
 
     div {
       display: flex;
       gap: 8px;
+      flex-wrap: wrap;
     }
   }
 
+  .table-scroll-hint {
+    margin: 0;
+    padding: 8px 20px;
+    color: #53645a;
+    font-size: 11px;
+  }
+
   .table-scroll {
+    width: 100%;
+    max-width: 100%;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
+
+    &:focus-visible {
+      outline: 2px solid var(--theme-focus, #789d45);
+      outline-offset: -2px;
+    }
   }
 
   table {
     width: 100%;
+    min-width: 640px;
     border-collapse: collapse;
-    white-space: nowrap;
+    white-space: normal;
   }
 
   th {
-    padding: 11px 16px;
-    border-top: 1px solid #edf0ed;
-    border-bottom: 1px solid #edf0ed;
-    color: #87938a;
+    padding: 11px 10px;
+    border-top: 1px solid #e6e9ed;
+    border-bottom: 1px solid #e6e9ed;
+    color: #68727d;
     background: var(--theme-table, #fafbfa);
     font-size: 9px;
     font-weight: 800;
     letter-spacing: 0.08em;
     text-align: left;
+    overflow-wrap: anywhere;
   }
 
   td {
-    padding: 14px 16px;
+    padding: 12px 10px;
     border-bottom: 1px solid #f0f2f0;
-    color: #4a5a4f;
+    color: #424a52;
     font-size: 11px;
+    overflow-wrap: anywhere;
 
     strong {
       display: block;
-      color: #24352a;
+      color: #24292f;
       font-size: 11px;
       font-weight: 700;
     }
@@ -333,13 +359,17 @@
     small {
       display: block;
       margin-top: 5px;
-      color: #87938a;
+      color: #737b84;
       font-size: 10px;
     }
   }
 
   tbody tr:last-child td {
     border-bottom: 0;
+  }
+
+  tbody tr:hover {
+    background: #f7f8fa;
   }
 
   .status-pill {
@@ -359,7 +389,7 @@
 
   .actions {
     text-align: right;
-    white-space: nowrap;
+    white-space: normal;
 
     .icon-button + .icon-button {
       margin-left: 5px;
@@ -434,7 +464,8 @@
       grid-column: auto;
     }
 
-    .search-form {
+    .search-form,
+    .search-form:has(select) {
       width: 100%;
     }
   }

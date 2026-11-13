@@ -35,13 +35,13 @@ public class ProductsControllerTests
         };
         _mediator.Setup(m => m.Send(It.IsAny<GetProductsListQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync(page);
 
-        var result = await _controller.GetAll(2, 5, 3, 4, 10m, 500m, "bat", "price_asc", true, true, true);
+        var result = await _controller.GetAll(2, 5, 3, 4, 10m, 500m, "bat", "price_asc", true, true, true, ProductListStatus.Progress);
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         Assert.Same(page, ok.Value);
         _mediator.Verify(m => m.Send(It.Is<GetProductsListQuery>(q =>
             q.PageNumber == 2 && q.PageSize == 5 && q.CategoryId == 3 && q.BrandId == 4 &&
-            q.MinPrice == 10m && q.MaxPrice == 500m && q.SearchTerm == "bat" && q.SortBy == "price_asc" && q.HasImage == true && q.PublishedOnly),
+            q.MinPrice == 10m && q.MaxPrice == 500m && q.SearchTerm == "bat" && q.SortBy == "price_asc" && q.HasImage == true && q.PublishedOnly && q.Status == ProductListStatus.Progress),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -54,7 +54,15 @@ public class ProductsControllerTests
         await _controller.GetAll();
 
         _mediator.Verify(m => m.Send(It.Is<GetProductsListQuery>(q =>
-            q.PageNumber == 1 && q.PageSize == 20 && q.SortBy == "newest"), It.IsAny<CancellationToken>()), Times.Once);
+            q.PageNumber == 1 && q.PageSize == 20 && q.SortBy == "newest" && q.Status == null && q.IsActive), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAll_InvalidStatus_ReturnsBadRequest()
+    {
+        var result = await _controller.GetAll(status: (ProductListStatus)99);
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        _mediator.Verify(m => m.Send(It.IsAny<GetProductsListQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]

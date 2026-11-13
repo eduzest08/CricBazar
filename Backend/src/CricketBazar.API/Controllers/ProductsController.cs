@@ -37,8 +37,12 @@ public class ProductsController : ControllerBase
         [FromQuery] string? sortBy = "newest",
         [FromQuery] bool isActive = true,
         [FromQuery] bool? hasImage = null,
-        [FromQuery] bool publishedOnly = false)
+        [FromQuery] bool publishedOnly = false,
+        [FromQuery] ProductListStatus? status = null)
     {
+        if (status.HasValue && !Enum.IsDefined(status.Value))
+            return BadRequest(new { message = "Invalid product status." });
+
         _logger.LogInformation("Getting products - Page: {PageNumber}, Size: {PageSize}, Category: {CategoryId}", pageNumber, pageSize, categoryId);
         
         var query = new GetProductsListQuery
@@ -53,7 +57,8 @@ public class ProductsController : ControllerBase
             SortBy = sortBy,
             IsActive = isActive,
             HasImage = hasImage,
-            PublishedOnly = publishedOnly
+            PublishedOnly = publishedOnly,
+            Status = status
         };
 
         var products = await _mediator.Send(query);

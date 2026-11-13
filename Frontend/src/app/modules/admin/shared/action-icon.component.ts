@@ -19,11 +19,20 @@ import { Component, input } from '@angular/core';
         @case ('restore') {
           <path d="M3 5v5h5M4 10a8 8 0 1 1 1 7" />
         }
+        @case ('entry') {
+          <path d="M12 20H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3M7 7h6M7 11h5M7 15h3M16 19l4-4M18 13l3 3" />
+        }
+        @case ('list') {
+          <path d="M9 6h11M9 12h11M9 18h11" />
+          <circle cx="4.5" cy="6" r="1" />
+          <circle cx="4.5" cy="12" r="1" />
+          <circle cx="4.5" cy="18" r="1" />
+        }
       }
     </svg>
   `,
   styles: `:host { display: inline-flex; } svg { width: 18px; height: 18px; }`,
 })
 export class ActionIconComponent {
-  readonly name = input.required<'edit' | 'delete' | 'view' | 'restore'>();
+  readonly name = input.required<'edit' | 'delete' | 'view' | 'restore' | 'entry' | 'list'>();
 }

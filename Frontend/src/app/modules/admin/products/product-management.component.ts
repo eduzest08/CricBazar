@@ -3,17 +3,19 @@ import { CurrencyPipe, DatePipe, PercentPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { EMPTY, Subscription, expand, reduce } from 'rxjs';
+import { EMPTY, Subscription, expand, forkJoin, reduce } from 'rxjs';
 import { CatalogApiService } from '../../../core/services/catalog-api.service';
 import { getApiErrorMessage } from '../../../core/utils/api-error';
 import { RichTextEditorComponent } from '../../../shared/rich-text-editor.component';
 import { ActionIconComponent } from '../shared/action-icon.component';
+import { BulkDeleteComponent } from '../shared/bulk-delete.component';
 import {
   Brand,
   Category,
   Product,
   ProductDraft,
   ProductImage,
+  ProductListStatus,
   ProductPayload,
   ProductSortField,
   productStatus,
@@ -58,7 +60,7 @@ interface CategoryOption {
 
 @Component({
   selector: 'app-product-management',
-  imports: [CurrencyPipe, DatePipe, PercentPipe, FormsModule, RouterLink, RichTextEditorComponent, ActionIconComponent],
+  imports: [CurrencyPipe, DatePipe, PercentPipe, FormsModule, RouterLink, RichTextEditorComponent, ActionIconComponent, BulkDeleteComponent],
   templateUrl: './product-management.component.html',
   styleUrl: './product-management.component.scss',
 })
@@ -67,8 +69,10 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
   private readonly api = inject(CatalogApiService);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private viewerSubscription?: Subscription;
+  private countsSubscription?: Subscription;
 
   products: Product[] = [];
+  private productsSubscription?: Subscription;
   categories: Category[] = [];
   categoryOptions: CategoryOption[] = [];
   brands: Brand[] = [];
@@ -81,7 +85,8 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
   sortBy: ProductSortField = 'id';
   sortDirection: 'asc' | 'desc' = 'desc';
   totalCount = 0;
-  activeTab: 'active' | 'inactive' = 'active';
+  pageTab: 'entry' | 'catalog' = 'catalog';
+  activeTab: ProductListStatus = 'all';
   loading = false;
   saving = false;
   exporting: 'excel' | 'pdf' | null = null;
@@ -234,7 +239,8 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
     });
   }
 
-  tabCounts = { active: 0, inactive: 0 };
+  tabCounts: Record<ProductListStatus, number | null> = { all: null, active: null, progress: null, inactive: null };
+  countsError = '';
 
   viewerProduct: Product | null = null;
   viewerImages: ProductImage[] = [];
@@ -321,6 +327,8 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.productsSubscription?.unsubscribe();
+    this.countsSubscription?.unsubscribe();
     this.viewerSubscription?.unsubscribe();
   }
 
@@ -340,23 +348,39 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
   }
 
   private loadTabCounts(): void {
-    for (const isActive of [true, false]) {
-      this.api.getProducts(this.searchTerm, 1, 1, 'newest', isActive).subscribe({
-        next: (page) => {
-          this.tabCounts = { ...this.tabCounts, [isActive ? 'active' : 'inactive']: page.totalCount };
-          this.changeDetector.markForCheck();
-        },
-      });
-    }
+    this.countsSubscription?.unsubscribe();
+    this.tabCounts = { all: null, active: null, progress: null, inactive: null };
+    this.countsError = '';
+    const count = (status: ProductListStatus) =>
+      this.api.getProducts(this.searchTerm, 1, 1, 'newest', true, undefined, undefined, false, status);
+    this.countsSubscription = forkJoin({
+      all: count('all'),
+      active: count('active'),
+      progress: count('progress'),
+      inactive: count('inactive'),
+    }).subscribe({
+      next: (pages) => {
+        this.tabCounts = {
+          all: pages.all.totalCount, active: pages.active.totalCount,
+          progress: pages.progress.totalCount, inactive: pages.inactive.totalCount,
+        };
+        this.changeDetector.markForCheck();
+      },
+      error: (error: unknown) => {
+        this.countsError = `Could not load product status counts: ${getApiErrorMessage(error)}`;
+        this.changeDetector.markForCheck();
+      },
+    });
   }
 
   loadProducts(): void {
+    this.productsSubscription?.unsubscribe();
     this.loading = true;
     this.errorMessage = '';
     this.loadTabCounts();
     const sortKey = this.sortBy === 'salePrice' ? 'price' : this.sortBy;
-    this.api
-      .getProducts(this.searchTerm, this.pageNumber, this.pageSize, `${sortKey}_${this.sortDirection}`, this.activeTab === 'active')
+    this.productsSubscription = this.api
+      .getProducts(this.searchTerm, this.pageNumber, this.pageSize, `${sortKey}_${this.sortDirection}`, true, undefined, undefined, false, this.activeTab)
       .subscribe({
       next: (response) => {
         const lastPage = Math.max(1, Math.ceil(response.totalCount / this.pageSize));
@@ -372,13 +396,15 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
       },
       error: (error: unknown) => {
         this.errorMessage = getApiErrorMessage(error);
+        this.products = [];
+        this.totalCount = 0;
         this.loading = false;
         this.changeDetector.markForCheck();
       },
     });
   }
 
-  selectTab(tab: 'active' | 'inactive'): void {
+  selectTab(tab: ProductListStatus): void {
     if (this.activeTab === tab) {
       return;
     }
@@ -491,6 +517,7 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
 
   startCreate(): void {
     this.editingId = null;
+    this.pageTab = 'entry';
     this.draft = emptyProductDraft();
     this.pricingMode = 'margin';
     this.pricingRate = 0;
@@ -503,6 +530,7 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
 
   edit(product: Product): void {
     this.editingId = product.id;
+    this.pageTab = 'entry';
     this.draft = {
       name: product.name,
       slug: product.slug,
@@ -532,7 +560,7 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
     }
     this.successMessage = '';
     this.errorMessage = '';
-    document.querySelector('.editor-card')?.scrollIntoView({ behavior: 'smooth' });
+    document.querySelector<HTMLElement>('.page-tabs')?.scrollIntoView?.({ behavior: 'smooth' });
   }
 
   cancelEdit(): void {
@@ -566,6 +594,7 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
         const message =
           this.editingId === null ? 'Product created.' : 'Product changes saved.';
         this.startCreate();
+        this.pageTab = 'catalog';
         this.successMessage = message;
         this.saving = false;
         this.loadProducts();
@@ -579,8 +608,20 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
     });
   }
 
+  selectPageTab(tab: 'entry' | 'catalog'): void {
+    this.pageTab = tab;
+  }
+
   productToDelete: Product | null = null;
   deletingProduct = false;
+
+  bulkDeleted(ids: number[]): void {
+    if (this.editingId !== null && ids.includes(this.editingId)) {
+      this.startCreate();
+      this.pageTab = 'catalog';
+    }
+    this.loadProducts();
+  }
 
   delete(product: Product): void {
     this.productToDelete = product;

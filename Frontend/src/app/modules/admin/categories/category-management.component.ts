@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { ActionIconComponent } from '../shared/action-icon.component';
+import { BulkDeleteComponent } from '../shared/bulk-delete.component';
 import { FormsModule } from '@angular/forms';
 import { CatalogApiService } from '../../../core/services/catalog-api.service';
 import { Category, CategoryDraft } from '../../../core/models/catalog.models';
@@ -16,6 +17,7 @@ interface CategoryRow {
 
 interface CategoryTree {
   rows: CategoryRow[];
+  pageItems: Category[];
   totalCount: number;
   groupCount: number;
   pageCount: number;
@@ -28,7 +30,7 @@ function emptyCategoryDraft(): CategoryDraft {
 
 @Component({
   selector: 'app-category-management',
-  imports: [FormsModule, ActionIconComponent],
+  imports: [FormsModule, ActionIconComponent, BulkDeleteComponent],
   templateUrl: './category-management.component.html',
   styleUrl: './category-management.component.scss',
 })
@@ -45,6 +47,7 @@ export class CategoryManagementComponent implements OnInit {
   sortDirection: 'asc' | 'desc' = 'asc';
   draft = emptyCategoryDraft();
   editingId: number | null = null;
+  pageView: 'entry' | 'list' = 'list';
   loading = false;
   saving = false;
   reordering = false;
@@ -160,8 +163,15 @@ export class CategoryManagementComponent implements OnInit {
       rows.push({ category, depth, hasChildren, expanded });
       if (expanded) descendants.forEach((child) => visit(child, depth + 1));
     };
-    roots.slice((page - 1) * this.pageSize, page * this.pageSize).forEach((root) => visit(root, 0));
-    return { rows, totalCount: matches.length, groupCount: roots.length, pageCount, hasInvalidHierarchy };
+    const pageRoots = roots.slice((page - 1) * this.pageSize, page * this.pageSize);
+    pageRoots.forEach((root) => visit(root, 0));
+    const pageItems: Category[] = [];
+    const collect = (category: Category) => {
+      (children.get(category.id) ?? []).forEach(collect);
+      pageItems.push(category);
+    };
+    pageRoots.forEach(collect);
+    return { rows, pageItems, totalCount: matches.length, groupCount: roots.length, pageCount, hasInvalidHierarchy };
   }
 
   search(): void {
@@ -290,6 +300,7 @@ export class CategoryManagementComponent implements OnInit {
 
   edit(category: Category): void {
     this.editingId = category.id;
+    this.pageView = 'entry';
     this.draft = {
       parentId: category.parentId,
       name: category.name,
@@ -299,12 +310,17 @@ export class CategoryManagementComponent implements OnInit {
     };
     this.errorMessage = '';
     this.successMessage = '';
-    document.querySelector('.editor-card')?.scrollIntoView({ behavior: 'smooth' });
+    document.querySelector<HTMLElement>('.management-tabs')?.scrollIntoView?.({ behavior: 'smooth' });
   }
 
   reset(): void {
     this.editingId = null;
+    this.pageView = 'entry';
     this.draft = emptyCategoryDraft();
+  }
+
+  selectPageView(view: 'entry' | 'list'): void {
+    this.pageView = view;
   }
 
   save(): void {
@@ -326,6 +342,7 @@ export class CategoryManagementComponent implements OnInit {
         this.successMessage =
           this.editingId === null ? 'Category created.' : 'Category changes saved.';
         this.reset();
+        this.pageView = 'list';
         this.saving = false;
         this.loadCategories();
         this.changeDetector.markForCheck();
@@ -339,6 +356,14 @@ export class CategoryManagementComponent implements OnInit {
   }
 
   categoryToDelete: Category | null = null;
+
+  bulkDeleted(ids: number[]): void {
+    if (this.editingId !== null && ids.includes(this.editingId)) {
+      this.reset();
+      this.pageView = 'list';
+    }
+    this.loadCategories();
+  }
 
   delete(category: Category): void {
     this.categoryToDelete = category;

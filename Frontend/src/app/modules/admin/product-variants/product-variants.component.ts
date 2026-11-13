@@ -10,6 +10,7 @@ import {
 } from '../../../core/models/catalog.models';
 import { getApiErrorMessage } from '../../../core/utils/api-error';
 import { ActionIconComponent } from '../shared/action-icon.component';
+import { BulkDeleteComponent } from '../shared/bulk-delete.component';
 
 function emptyVariantDraft(): ProductVariantDraft {
   return { productId: null, size: '', color: '', hand: '', stock: 0, priceOverride: null };
@@ -17,7 +18,7 @@ function emptyVariantDraft(): ProductVariantDraft {
 
 @Component({
   selector: 'app-product-variants',
-  imports: [FormsModule, DecimalPipe, ActionIconComponent],
+  imports: [FormsModule, DecimalPipe, ActionIconComponent, BulkDeleteComponent],
   templateUrl: './product-variants.component.html',
   styleUrl: './product-variants.component.scss',
 })
@@ -39,6 +40,7 @@ export class ProductVariantsComponent implements OnInit {
   sortDirection: 'asc' | 'desc' = 'asc';
   draft = emptyVariantDraft();
   editingId: number | null = null;
+  pageView: 'entry' | 'list' = 'list';
   activeTab: 'active' | 'inactive' = 'active';
   filterProducts: Product[] = [];
   loading = false;
@@ -189,6 +191,7 @@ export class ProductVariantsComponent implements OnInit {
 
   edit(variant: ProductVariant): void {
     this.editingId = variant.id;
+    this.pageView = 'entry';
     this.draft = {
       productId: variant.productId,
       size: variant.size ?? '',
@@ -199,12 +202,17 @@ export class ProductVariantsComponent implements OnInit {
     };
     this.errorMessage = '';
     this.successMessage = '';
-    document.querySelector('.editor-card')?.scrollIntoView({ behavior: 'smooth' });
+    document.querySelector<HTMLElement>('.management-tabs')?.scrollIntoView?.({ behavior: 'smooth' });
   }
 
   reset(): void {
     this.editingId = null;
+    this.pageView = 'entry';
     this.draft = emptyVariantDraft();
+  }
+
+  selectPageView(view: 'entry' | 'list'): void {
+    this.pageView = view;
   }
 
   save(): void {
@@ -244,6 +252,7 @@ export class ProductVariantsComponent implements OnInit {
       next: () => {
         this.successMessage = isCreate ? 'Variant created.' : 'Variant changes saved.';
         this.reset();
+        this.pageView = 'list';
         this.saving = false;
         this.loadVariants();
         this.changeDetector.markForCheck();
@@ -258,6 +267,14 @@ export class ProductVariantsComponent implements OnInit {
 
   describe(variant: ProductVariant): string {
     return [variant.size, variant.color, variant.hand].filter(Boolean).join(' / ');
+  }
+
+  bulkDeleted(ids: number[]): void {
+    if (this.editingId !== null && ids.includes(this.editingId)) {
+      this.reset();
+      this.pageView = 'list';
+    }
+    this.loadVariants();
   }
 
   delete(variant: ProductVariant): void {

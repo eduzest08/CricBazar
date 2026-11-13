@@ -2,6 +2,7 @@ namespace CricketBazar.Application.Queries.Products;
 
 using MediatR;
 using CricketBazar.Application.DTOs;
+using CricketBazar.Domain.Interfaces;
 
 public class GetProductByIdQuery : IRequest<ProductDto?>
 {
@@ -26,6 +27,7 @@ public class GetProductsListQuery : IRequest<PaginatedResponse<ProductDto>>
     public bool IsActive { get; set; } = true;
     public bool? HasImage { get; set; }
     public bool PublishedOnly { get; set; }
+    public ProductListStatus? Status { get; set; }
 }
 
 public class GetProductBySlugQuery : IRequest<ProductDto?>

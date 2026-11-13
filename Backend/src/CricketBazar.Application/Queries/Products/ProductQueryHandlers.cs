@@ -47,7 +47,8 @@ public class GetProductsListQueryHandler : IRequestHandler<GetProductsListQuery,
             request.SortBy ?? "newest",
             request.IsActive,
             request.HasImage,
-            request.PublishedOnly
+            request.PublishedOnly,
+            request.Status
         );
 
         var productDtos = _mapper.Map<List<ProductDto>>(result.Item1);
@@ -57,7 +58,8 @@ public class GetProductsListQueryHandler : IRequestHandler<GetProductsListQuery,
             Items = productDtos,
             TotalCount = result.Item2,
             PageNumber = request.PageNumber,
-            PageSize = request.PageSize
+            PageSize = request.PageSize,
+            StatusFilter = request.Status?.ToString().ToLowerInvariant()
         };
     }
 }

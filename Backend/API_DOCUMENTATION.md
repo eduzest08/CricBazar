@@ -14,7 +14,9 @@ Currently using X-User-Id header for user identification (to be replaced with JW
 
 ### Products
 - **GET** `/products` - Get all products with pagination and filtering
-  - Query Parameters: `pageNumber`, `pageSize`, `categoryId`, `brandId`, `minPrice`, `maxPrice`, `searchTerm`, `sortBy`
+  - Query Parameters: `pageNumber`, `pageSize`, `categoryId`, `brandId`, `minPrice`, `maxPrice`, `searchTerm`, `sortBy`, `isActive`, `hasImage`, `publishedOnly`, `status`.
+  - Optional `status` accepts `all`, `active`, `progress`, or `inactive` (case-insensitive). `active` requires an enabled, published product with an image; `progress` requires an enabled product that is unpublished or has no image; `inactive` returns disabled products; `all` includes every status. When supplied, `status` replaces the `isActive` filter and composes with the remaining filters. When omitted, `isActive` retains its existing default of `true`. Filtering applies before pagination and counts.
+  - Responses to requests with `status` include a lowercase `statusFilter` confirming the applied filter; it is omitted when no status was requested.
 - **GET** `/products/{id}` - Get product by ID
 - **GET** `/products/slug/{slug}` - Get product by slug
 - **POST** `/products` - Create new product (Admin)

@@ -60,7 +60,7 @@ public class ProductHandlerTests
     public async Task GetList_ForwardsFilters_AndBuildsPagedResponse()
     {
         var products = new List<Product> { NewProduct(), NewProduct(2) };
-        _repo.Setup(r => r.SearchAsync("bat", 3, 4, 10m, 500m, 2, 5, "price_asc", true, true, true))
+        _repo.Setup(r => r.SearchAsync("bat", 3, 4, 10m, 500m, 2, 5, "price_asc", true, true, true, ProductListStatus.Progress))
             .ReturnsAsync(((IEnumerable<Product>)products, 12));
         _mapper.Setup(m => m.Map<List<ProductDto>>(It.IsAny<IEnumerable<Product>>()))
             .Returns(new List<ProductDto> { NewDto(), NewDto(2) });
@@ -68,7 +68,7 @@ public class ProductHandlerTests
         var query = new GetProductsListQuery
         {
             SearchTerm = "bat", CategoryId = 3, BrandId = 4, MinPrice = 10m, MaxPrice = 500m,
-            PageNumber = 2, PageSize = 5, SortBy = "price_asc", HasImage = true, PublishedOnly = true
+            PageNumber = 2, PageSize = 5, SortBy = "price_asc", HasImage = true, PublishedOnly = true, Status = ProductListStatus.Progress
         };
         var result = await new GetProductsListQueryHandler(_repo.Object, _mapper.Object).Handle(query, CancellationToken.None);
 
@@ -76,19 +76,21 @@ public class ProductHandlerTests
         Assert.Equal(12, result.TotalCount);
         Assert.Equal(2, result.PageNumber);
         Assert.Equal(5, result.PageSize);
+        Assert.Equal("progress", result.StatusFilter);
     }
 
     [Fact]
     public async Task GetList_NullSortBy_DefaultsToNewest()
     {
-        _repo.Setup(r => r.SearchAsync(null, null, null, null, null, 1, 20, "newest"))
+        _repo.Setup(r => r.SearchAsync(null, null, null, null, null, 1, 20, "newest", true, null, false, null))
             .ReturnsAsync((Enumerable.Empty<Product>(), 0));
         _mapper.Setup(m => m.Map<List<ProductDto>>(It.IsAny<IEnumerable<Product>>())).Returns(new List<ProductDto>());
 
-        await new GetProductsListQueryHandler(_repo.Object, _mapper.Object)
+        var result = await new GetProductsListQueryHandler(_repo.Object, _mapper.Object)
             .Handle(new GetProductsListQuery { SortBy = null }, CancellationToken.None);
 
-        _repo.Verify(r => r.SearchAsync(null, null, null, null, null, 1, 20, "newest"), Times.Once);
+        Assert.Null(result.StatusFilter);
+        _repo.Verify(r => r.SearchAsync(null, null, null, null, null, 1, 20, "newest", true, null, false, null), Times.Once);
     }
 
     [Fact]

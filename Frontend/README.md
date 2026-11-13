@@ -56,6 +56,14 @@ Use **Edit descriptions and SEO** in the product form to edit the short descript
 
 Admin list row actions use icons for edit, view, delete and restore. Hover over an icon to see its action; each button also has an accessible label.
 
+Admin tables wrap long values to fit more columns on screen. On narrow screens, focus the labeled table area and use the horizontal scrollbar, touch gesture, or keyboard arrow keys to reach the remaining columns.
+
+Admin lists also offer row checkboxes and **Select all on this page**. Use **Delete selected** and confirm the selected IDs to delete multiple items; individual delete actions remain available. Selection is limited to the current page. For categories and product images, select-all includes items in collapsed groups on that page. Categories are deleted children first; items that cannot be deleted are reported individually and remain selected for retry. Product bulk deletion follows the same rules as single deletion: active products move to Inactive, while inactive products are permanently deleted.
+
+The product catalog has All, Active, Progress, and Inactive views, with search-aware counts and server-side pagination. Active products are enabled, published, and have an image; enabled products missing either publication or an image are in Progress. All also includes inactive products. Mixed bulk selections show how many products will move to Inactive and how many will be permanently deleted before confirmation. Product exports continue to include the entire catalog, regardless of the selected view.
+
+Status views require the matching backend version. If the catalog reports that the status filter is unsupported, stop the old API process and restart it using the command above; an older API can otherwise return the same products for every status.
+
 Active products can be moved to Inactive and restored later. After confirmation, permanently deleting an inactive product also removes its image records, attributes, variants, reviews, and cart and wishlist entries. Uploaded image files are retained because image URLs may be shared; external images are not affected. Products linked to order history cannot be permanently deleted. This action cannot be undone.
 
 The category list groups children beneath their parents. Use the plus and minus buttons to expand or collapse each level. Column sorting applies to parent groups; children at every level follow Sort Order ascending, then name and ID for ties. Pagination counts top-level groups so children stay with their parent. Search shows matching categories and their ancestor path, expanded by default.

@@ -16,7 +16,12 @@
   <div class="alert alert-success" role="status">{{ successMessage }}</div>
 }
 
-<section class="editor-card">
+<div class="management-tabs" role="tablist" aria-label="Product image management">
+  <button id="image-entry-tab" class="management-tab-button" type="button" role="tab" [class.active]="pageView === 'entry'" [attr.aria-selected]="pageView === 'entry'" aria-controls="image-entry-panel" (click)="selectPageView('entry')"><app-action-icon name="entry" /> Entry</button>
+  <button id="image-list-tab" class="management-tab-button" type="button" role="tab" [class.active]="pageView === 'list'" [attr.aria-selected]="pageView === 'list'" aria-controls="image-list-panel" (click)="selectPageView('list')"><app-action-icon name="list" /> List</button>
+</div>
+
+<section id="image-entry-panel" class="editor-card" role="tabpanel" aria-labelledby="image-entry-tab" [hidden]="pageView !== 'entry'">
   <div class="section-heading">
     <div>
       <h2>{{ editingId === null ? 'Add an image' : 'Edit image' }}</h2>
@@ -146,7 +151,7 @@
   }
 </dialog>
 
-<section class="table-card">
+<section id="image-list-panel" class="table-card" role="tabpanel" aria-labelledby="image-list-tab" [hidden]="pageView !== 'list'">
   <div class="table-toolbar">
     <div>
       <h2>All images</h2>
@@ -177,15 +182,19 @@
     <button class="tab-button" type="button" role="tab" [disabled]="reordering" [class.active]="activeTab === 'inactive'" [attr.aria-selected]="activeTab === 'inactive'" (click)="selectTab('inactive')">Inactive ({{ tabCounts.inactive }})</button>
   </div>
 
+  <app-bulk-delete #bulk="bulkDelete" kind="image" [items]="visiblePageImages" [disabled]="loading || saving || reordering || !!errorMessage" (completed)="bulkDeleted($event)" />
+  <p class="bulk-group-note">Select all includes images in collapsed product groups on this page.</p>
   @if (loading) {
     <div class="inline-loader" role="status">Loading images…</div>
   } @else if (!imageGroups.length) {
     <div class="empty-state">No images found. Add your first image above.</div>
   } @else {
-    <div class="table-scroll">
+    <p class="table-scroll-hint" id="image-table-hint">On narrow screens, scroll horizontally to see all columns.</p>
+    <div class="table-scroll" role="region" aria-label="Product images table" aria-describedby="image-table-hint" tabindex="0">
       <table>
         <thead>
           <tr>
+            <th><span class="sr-only">Select</span></th>
             <th>PRODUCT / IMAGE</th>
             <th>IMAGE</th>
             <th>SORT ORDER</th>
@@ -195,6 +204,7 @@
         <tbody>
           @for (group of visibleGroups; track group.productId) {
             <tr class="product-group">
+              <td></td>
               <td>
                 <div class="group-title">
                   <button class="tree-toggle" type="button" [attr.aria-expanded]="isExpanded(group.productId)"
@@ -221,6 +231,7 @@
             @if (isExpanded(group.productId)) {
               @for (image of group.images; track image.id; let i = $index) {
                 <tr (dragover)="dragOver($event, group, image)" (drop)="drop($event, group, image)">
+                  <td><input type="checkbox" [checked]="bulk.selected.has(image.id)" [disabled]="bulk.disabled || bulk.busy" [attr.aria-label]="'Select image ' + image.id + ' for ' + image.productName" (change)="bulk.toggle(image.id)" /></td>
                   <td>
                     <div class="image-row-title">
                       <span class="drag-handle" [class.disabled]="!canReorder(group)" [draggable]="canReorder(group)"

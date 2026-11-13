@@ -5,6 +5,7 @@ import { CatalogApiService } from '../../../core/services/catalog-api.service';
 import { Product, Review, ReviewSortField, ReviewPayload } from '../../../core/models/catalog.models';
 import { getApiErrorMessage } from '../../../core/utils/api-error';
 import { ActionIconComponent } from '../shared/action-icon.component';
+import { BulkDeleteComponent } from '../shared/bulk-delete.component';
 
 const MAX_COMMENT_LENGTH = 2000;
 
@@ -20,7 +21,7 @@ function emptyReviewDraft(): ReviewDraft {
 
 @Component({
   selector: 'app-reviews',
-  imports: [FormsModule, DatePipe, ActionIconComponent],
+  imports: [FormsModule, DatePipe, ActionIconComponent, BulkDeleteComponent],
   templateUrl: './reviews.component.html',
   styleUrl: './reviews.component.scss',
 })
@@ -48,10 +49,12 @@ export class ReviewsComponent implements OnInit {
   readonly maxCommentLength = MAX_COMMENT_LENGTH;
   draft = emptyReviewDraft();
   editingId: number | null = null;
+  pageView: 'entry' | 'list' = 'list';
   saving = false;
 
   edit(review: Review): void {
     this.editingId = review.id;
+    this.pageView = 'entry';
     this.draft = {
       productId: review.productId,
       rating: review.rating,
@@ -59,12 +62,17 @@ export class ReviewsComponent implements OnInit {
     };
     this.errorMessage = '';
     this.successMessage = '';
-    document.querySelector('.editor-card')?.scrollIntoView({ behavior: 'smooth' });
+    document.querySelector<HTMLElement>('.management-tabs')?.scrollIntoView?.({ behavior: 'smooth' });
   }
 
   reset(): void {
     this.editingId = null;
+    this.pageView = 'entry';
     this.draft = emptyReviewDraft();
+  }
+
+  selectPageView(view: 'entry' | 'list'): void {
+    this.pageView = view;
   }
 
   setRating(rating: number): void {
@@ -93,6 +101,7 @@ export class ReviewsComponent implements OnInit {
       next: () => {
         this.successMessage = isCreate ? 'Review added.' : 'Review changes saved.';
         this.reset();
+        this.pageView = 'list';
         this.saving = false;
         this.loadReviews();
         this.changeDetector.markForCheck();
@@ -208,6 +217,14 @@ export class ReviewsComponent implements OnInit {
       return 'none';
     }
     return this.sortDirection === 'asc' ? 'ascending' : 'descending';
+  }
+
+  bulkDeleted(ids: number[]): void {
+    if (this.editingId !== null && ids.includes(this.editingId)) {
+      this.reset();
+      this.pageView = 'list';
+    }
+    this.loadReviews();
   }
 
   delete(review: Review): void {

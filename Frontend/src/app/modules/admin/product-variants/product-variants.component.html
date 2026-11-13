@@ -16,7 +16,12 @@
   <div class="alert alert-success" role="status">{{ successMessage }}</div>
 }
 
-<section class="editor-card">
+<div class="management-tabs" role="tablist" aria-label="Product variant management">
+  <button id="variant-entry-tab" class="management-tab-button" type="button" role="tab" [class.active]="pageView === 'entry'" [attr.aria-selected]="pageView === 'entry'" aria-controls="variant-entry-panel" (click)="selectPageView('entry')"><app-action-icon name="entry" /> Entry</button>
+  <button id="variant-list-tab" class="management-tab-button" type="button" role="tab" [class.active]="pageView === 'list'" [attr.aria-selected]="pageView === 'list'" aria-controls="variant-list-panel" (click)="selectPageView('list')"><app-action-icon name="list" /> List</button>
+</div>
+
+<section id="variant-entry-panel" class="editor-card" role="tabpanel" aria-labelledby="variant-entry-tab" [hidden]="pageView !== 'entry'">
   <div class="section-heading">
     <div>
       <h2>{{ editingId === null ? 'Create a variant' : 'Edit variant' }}</h2>
@@ -73,7 +78,7 @@
   </form>
 </section>
 
-<section class="table-card">
+<section id="variant-list-panel" class="table-card" role="tabpanel" aria-labelledby="variant-list-tab" [hidden]="pageView !== 'list'">
   <div class="table-toolbar">
     <div>
       <h2>All variants</h2>
@@ -102,15 +107,18 @@
     <button class="tab-button" type="button" role="tab" [class.active]="activeTab === 'inactive'" [attr.aria-selected]="activeTab === 'inactive'" (click)="selectTab('inactive')">Inactive ({{ tabCounts.inactive }})</button>
   </div>
 
+  <app-bulk-delete #bulk="bulkDelete" kind="variant" [items]="variants" [disabled]="loading || saving || !!errorMessage" (completed)="bulkDeleted($event)" />
   @if (loading) {
     <div class="inline-loader" role="status">Loading variants…</div>
   } @else if (!variants.length) {
     <div class="empty-state">No variants found. Create your first variant above.</div>
   } @else {
-    <div class="table-scroll">
+    <p class="table-scroll-hint" id="variant-table-hint">On narrow screens, scroll horizontally to see all columns.</p>
+    <div class="table-scroll" role="region" aria-label="Product variants table" aria-describedby="variant-table-hint" tabindex="0">
       <table>
         <thead>
           <tr>
+            <th><span class="sr-only">Select</span></th>
             <th [attr.aria-sort]="ariaSort('product')"><button class="sort-button" type="button" (click)="sort('product')">PRODUCT {{ sortIndicator('product') }}</button></th>
             <th [attr.aria-sort]="ariaSort('size')"><button class="sort-button" type="button" (click)="sort('size')">SIZE {{ sortIndicator('size') }}</button></th>
             <th [attr.aria-sort]="ariaSort('color')"><button class="sort-button" type="button" (click)="sort('color')">COLOR {{ sortIndicator('color') }}</button></th>
@@ -123,6 +131,7 @@
         <tbody>
           @for (variant of variants; track variant.id) {
             <tr>
+              <td><input type="checkbox" [checked]="bulk.selected.has(variant.id)" [disabled]="bulk.disabled || bulk.busy" [attr.aria-label]="'Select variant ' + variant.id + ' for ' + variant.productName" (change)="bulk.toggle(variant.id)" /></td>
               <td><strong>{{ variant.productName }}</strong><small>#{{ variant.id }}</small></td>
               <td>{{ variant.size || '—' }}</td>
               <td>{{ variant.color || '—' }}</td>

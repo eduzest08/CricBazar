@@ -30,6 +30,8 @@ export function productStatus(product: Product): 'Active' | 'Inactive' | 'Progre
   return !product.isActive ? 'Inactive' : product.hasImage && product.isPublished ? 'Active' : 'Progress';
 }
 
+export type ProductListStatus = 'all' | 'active' | 'progress' | 'inactive';
+
 export interface ProductDraft {
   name: string;
   slug: string;
@@ -57,6 +59,7 @@ export interface PaginatedResponse<T> {
   totalCount: number;
   pageNumber: number;
   pageSize: number;
+  statusFilter?: ProductListStatus;
 }
 
 export interface Category {

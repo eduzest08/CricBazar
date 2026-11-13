@@ -6,6 +6,26 @@
   font-weight: 700;
 }
 
+.product-table {
+  min-width: 880px;
+  table-layout: fixed;
+
+  .select-column { width: 4%; }
+  .id-column { width: 5%; }
+  .name-column { width: 13%; }
+  .sku-column { width: 8%; }
+  .category-column { width: 10%; }
+  .price-column, .cost-column, .status-column, .creator-column { width: 7%; }
+  .stock-column { width: 5%; }
+  .date-column { width: 9%; }
+  .actions-column { width: 9%; }
+
+  .actions .icon-button,
+  .actions .button {
+    margin: 2px;
+  }
+}
+
 .description-dialog {
   width: min(720px, calc(100% - 32px));
   max-height: 90vh;
@@ -243,25 +263,38 @@
 }
 
 .tabs {
-  border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+  border-bottom: 1px solid #e1e4e8;
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin: 12px 0;
+}
+
+.page-tabs {
+  gap: 0;
+  margin: 0 0 20px;
 }
 
 .tab-button {
   background: none;
   border: 0;
   border-bottom: 2px solid transparent;
-  color: inherit;
+  color: #535c65;
   cursor: pointer;
   font: inherit;
   font-weight: 600;
   opacity: 0.65;
-  padding: 8px 16px;
+  padding: 10px 16px;
+  transition: border-color 120ms ease, color 120ms ease, opacity 120ms ease;
 
   &.active {
-    border-bottom-color: currentColor;
+    border-bottom-color: var(--theme-link, #386634);
+    color: var(--theme-link, #386634);
     opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--theme-focus, #789d45);
+    outline-offset: -2px;
   }
 }

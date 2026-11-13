@@ -16,7 +16,12 @@
   <div class="alert alert-success" role="status">{{ successMessage }}</div>
 }
 
-<section class="editor-card">
+<div class="management-tabs" role="tablist" aria-label="Category management">
+  <button id="category-entry-tab" class="management-tab-button" type="button" role="tab" [class.active]="pageView === 'entry'" [attr.aria-selected]="pageView === 'entry'" aria-controls="category-entry-panel" (click)="selectPageView('entry')"><app-action-icon name="entry" /> Entry</button>
+  <button id="category-list-tab" class="management-tab-button" type="button" role="tab" [class.active]="pageView === 'list'" [attr.aria-selected]="pageView === 'list'" aria-controls="category-list-panel" (click)="selectPageView('list')"><app-action-icon name="list" /> List</button>
+</div>
+
+<section id="category-entry-panel" class="editor-card" role="tabpanel" aria-labelledby="category-entry-tab" [hidden]="pageView !== 'entry'">
   <div class="section-heading">
     <div>
       <h2>{{ editingId === null ? 'Create a category' : 'Edit category' }}</h2>
@@ -74,7 +79,7 @@
   </form>
 </section>
 
-<section class="table-card">
+<section id="category-list-panel" class="table-card" role="tabpanel" aria-labelledby="category-list-tab" [hidden]="pageView !== 'list'">
   @let tree = categoryTree;
   <div class="table-toolbar">
     <div>
@@ -90,6 +95,8 @@
     </form>
   </div>
 
+  <app-bulk-delete #bulk="bulkDelete" kind="category" [items]="tree.pageItems" [disabled]="loading || saving || reordering || !!errorMessage" (completed)="bulkDeleted($event)" />
+  <p class="bulk-group-note">Select all includes categories in collapsed groups on this page.</p>
   @if (tree.hasInvalidHierarchy) {
     <div class="alert alert-error" role="alert">Some categories have missing or circular parents. They are shown as separate groups until their parent relationships are corrected.</div>
   }
@@ -98,10 +105,12 @@
   } @else if (!tree.rows.length) {
     <div class="empty-state">No categories found. Create your first category above.</div>
   } @else {
-    <div class="table-scroll">
+    <p class="table-scroll-hint" id="category-table-hint">On narrow screens, scroll horizontally to see all columns.</p>
+    <div class="table-scroll" role="region" aria-label="Categories table" aria-describedby="category-table-hint" tabindex="0">
       <table>
         <thead>
           <tr>
+            <th><span class="sr-only">Select</span></th>
             <th [attr.aria-sort]="ariaSort('name')"><button class="sort-button" type="button" (click)="sort('name')">NAME {{ sortIndicator('name') }}</button></th>
             <th [attr.aria-sort]="ariaSort('slug')"><button class="sort-button" type="button" (click)="sort('slug')">SLUG {{ sortIndicator('slug') }}</button></th>
             <th [attr.aria-sort]="ariaSort('parent')"><button class="sort-button" type="button" (click)="sort('parent')">PARENT {{ sortIndicator('parent') }}</button></th>
@@ -114,6 +123,7 @@
           @for (row of tree.rows; track row.category.id) {
             @let category = row.category;
             <tr (dragover)="dragOver($event, category)" (drop)="drop($event, category)">
+              <td><input type="checkbox" [checked]="bulk.selected.has(category.id)" [disabled]="bulk.disabled || bulk.busy" [attr.aria-label]="'Select ' + category.name" (change)="bulk.toggle(category.id)" /></td>
               <td>
                 <div class="category-name" [style.padding-left.px]="row.depth * 24">
                   @if (row.depth > 0) {

@@ -5,6 +5,7 @@ import { CatalogApiService } from '../../../core/services/catalog-api.service';
 import { Brand, BrandDraft, BrandSortField } from '../../../core/models/catalog.models';
 import { getApiErrorMessage } from '../../../core/utils/api-error';
 import { ActionIconComponent } from '../shared/action-icon.component';
+import { BulkDeleteComponent } from '../shared/bulk-delete.component';
 
 function emptyBrandDraft(): BrandDraft {
   return { name: '', slug: '', logoUrl: '', isActive: true };
@@ -12,7 +13,7 @@ function emptyBrandDraft(): BrandDraft {
 
 @Component({
   selector: 'app-brand-management',
-  imports: [FormsModule, ActionIconComponent],
+  imports: [FormsModule, ActionIconComponent, BulkDeleteComponent],
   templateUrl: './brand-management.component.html',
   styleUrl: './brand-management.component.scss',
 })
@@ -33,6 +34,7 @@ export class BrandManagementComponent implements OnInit {
   previewUrl = '';
   draft = emptyBrandDraft();
   editingId: number | null = null;
+  pageView: 'entry' | 'list' = 'list';
   loading = false;
   saving = false;
   errorMessage = '';
@@ -150,6 +152,7 @@ export class BrandManagementComponent implements OnInit {
 
   edit(brand: Brand): void {
     this.editingId = brand.id;
+    this.pageView = 'entry';
     this.draft = {
       name: brand.name,
       slug: brand.slug,
@@ -159,13 +162,18 @@ export class BrandManagementComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
     this.setFile(null);
-    document.querySelector('.editor-card')?.scrollIntoView({ behavior: 'smooth' });
+    document.querySelector<HTMLElement>('.management-tabs')?.scrollIntoView?.({ behavior: 'smooth' });
   }
 
   reset(): void {
     this.editingId = null;
+    this.pageView = 'entry';
     this.draft = emptyBrandDraft();
     this.setFile(null);
+  }
+
+  selectPageView(view: 'entry' | 'list'): void {
+    this.pageView = view;
   }
 
   save(): void {
@@ -193,6 +201,7 @@ export class BrandManagementComponent implements OnInit {
       next: () => {
         this.successMessage = isCreate ? 'Brand created.' : 'Brand changes saved.';
         this.reset();
+        this.pageView = 'list';
         this.saving = false;
         this.loadBrands();
         this.changeDetector.markForCheck();
@@ -208,6 +217,14 @@ export class BrandManagementComponent implements OnInit {
   }
 
   brandToDelete: Brand | null = null;
+
+  bulkDeleted(ids: number[]): void {
+    if (this.editingId !== null && ids.includes(this.editingId)) {
+      this.reset();
+      this.pageView = 'list';
+    }
+    this.loadBrands();
+  }
 
   delete(brand: Brand): void {
     this.brandToDelete = brand;
