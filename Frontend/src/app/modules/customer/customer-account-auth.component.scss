@@ -1,0 +1,31 @@
+:host { display: block; min-height: 100vh; color: #1d2b40; background: #f5f7fb; }
+.account-page { display: grid; place-items: center; min-height: 560px; padding: 36px 16px; }
+.account-card { width: min(100%, 470px); padding: 30px 34px; border: 1px solid #e6eaf1; border-radius: 12px; background: #fff; box-shadow: 0 10px 35px rgb(27 49 83 / 8%); }
+.account-intro { margin-bottom: 22px; text-align: center; }
+.account-mark { display: inline-grid; place-items: center; width: 48px; height: 48px; margin-bottom: 8px; border-radius: 14px; background: #eaf1ff; color: #2867c7; font-size: 15px; font-weight: 900; }
+.eyebrow { margin: 0 0 7px; color: #2867c7; font-size: 10px; font-weight: 800; letter-spacing: .13em; }
+.account-intro h1 { margin: 0 0 7px; color: #1d2b40; font-size: 24px; letter-spacing: -.03em; }
+.account-intro > p:last-child { margin: 0; color: #718096; font-size: 12px; line-height: 1.5; }
+.account-card form { display: grid; gap: 14px; }
+.account-card label { display: grid; gap: 6px; min-width: 0; }
+.account-card label > span { color: #36445a; font-size: 11px; font-weight: 700; }
+.account-card label b { color: #d34b42; }
+.account-card label small { color: #7b8797; font-size: 10px; font-weight: 400; }
+.account-card input, .account-card select { width: 100%; height: 42px; padding: 0 12px; border: 1px solid #d6deea; border-radius: 6px; background: #fff; color: #273448; font: inherit; font-size: 12px; }
+.account-card input:focus, .account-card select:focus { border-color: #487ff1; outline: 2px solid rgb(72 127 241 / 16%); }
+.account-card input.ng-touched.ng-invalid, .account-card select.ng-touched.ng-invalid { border-color: #d34b42; }
+.field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.field-hint { color: #7b8797; font-size: 10px; line-height: 1.4; }
+.submit-button { min-height: 44px; margin-top: 3px; border: 0; border-radius: 6px; background: #2867c7; color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; }
+.submit-button:hover:not(:disabled) { background: #1e54a8; }
+.submit-button:disabled { opacity: .65; cursor: wait; }
+.account-error { margin: 0 0 16px; padding: 10px 12px; border-radius: 5px; background: #fff0ef; color: #a52b23; font-size: 12px; line-height: 1.45; }
+.account-switch { margin: 18px 0 0; color: #657185; text-align: center; font-size: 11px; }
+.account-switch a { margin-left: 4px; color: #2867c7; font-weight: 800; text-decoration: none; }
+.account-switch a:hover { text-decoration: underline; }
+.verification-note { margin: 14px 0 0; color: #7b8797; text-align: center; font-size: 10px; line-height: 1.5; }
+@media (max-width: 520px) {
+  .account-page { min-height: 0; padding: 22px 12px; }
+  .account-card { padding: 24px 18px; }
+  .field-grid { gap: 8px; }
+}

@@ -1,0 +1,94 @@
+<app-storefront-header />
+<main class="account-page">
+  <section class="account-card">
+    <div class="account-intro">
+      <span class="account-mark" aria-hidden="true">CB</span>
+      <p class="eyebrow">YOUR CRICBAZAR ACCOUNT</p>
+      <h1>{{ mode === 'register' ? 'Create your account' : 'Welcome back' }}</h1>
+      <p>{{ mode === 'register' ? 'Save your details for a quicker checkout.' : 'Sign in to manage your account and checkout.' }}</p>
+    </div>
+
+    @if (error) {
+      <p class="account-error" role="alert">{{ error }}</p>
+    }
+
+    <form #accountForm="ngForm" (ngSubmit)="submit(accountForm)" novalidate>
+      @if (mode === 'register') {
+        <div class="field-grid">
+          <label>
+            <span>First name</span>
+            <input name="firstName" [(ngModel)]="firstName" autocomplete="given-name" maxlength="100" />
+          </label>
+          <label>
+            <span>Last name</span>
+            <input name="lastName" [(ngModel)]="lastName" autocomplete="family-name" maxlength="100" />
+          </label>
+        </div>
+        <label>
+          <span>Country</span>
+          <select name="country" [(ngModel)]="country" required>
+            @for (option of countries; track option) { <option [value]="option">{{ option }}</option> }
+          </select>
+        </label>
+        <label>
+          <span>Mobile number <b>*</b></span>
+          <input name="mobileNumber" type="tel" [(ngModel)]="mobileNumber" autocomplete="tel"
+            placeholder="Enter your mobile number" pattern="(?=.*[0-9])\+?[0-9() -]{7,15}" maxlength="15" required />
+        </label>
+        <label>
+          <span>Email address <small>(optional)</small></span>
+          <input name="email" type="email" [(ngModel)]="email" autocomplete="email"
+            placeholder="you@example.com" maxlength="254" />
+        </label>
+      } @else {
+        <label>
+          <span>Email or mobile number</span>
+          <input name="identifier" [(ngModel)]="identifier" autocomplete="username"
+            placeholder="Email address or mobile number" maxlength="254" required />
+        </label>
+        <label>
+          <span>Country / region</span>
+          <select name="country" [(ngModel)]="country" required>
+            @for (option of countries; track option) { <option [value]="option">{{ option }}</option> }
+          </select>
+        </label>
+      }
+
+      <label>
+        <span>Password</span>
+        <input name="password" type="password" [(ngModel)]="password"
+          [autocomplete]="mode === 'register' ? 'new-password' : 'current-password'"
+          [minlength]="mode === 'register' ? 12 : 1" [maxlength]="128"
+          [pattern]="mode === 'register' ? '(?=.*[A-Za-z])(?=.*[0-9]).{12,128}' : '.+'"
+          [placeholder]="mode === 'register' ? 'At least 12 characters, with a letter and a number' : 'Enter your password'"
+          required />
+        @if (mode === 'register') {
+          <small class="field-hint">Use at least 12 characters, including a letter and a number.</small>
+        }
+      </label>
+
+      @if (mode === 'register') {
+        <label>
+          <span>Confirm password</span>
+          <input name="confirmPassword" type="password" [(ngModel)]="confirmPassword"
+            autocomplete="new-password" maxlength="128" required />
+        </label>
+      }
+
+      <button class="submit-button" type="submit" [disabled]="submitting">
+        {{ submitting ? 'Please wait...' : mode === 'register' ? 'Create account' : 'Sign in' }}
+      </button>
+    </form>
+
+    <p class="account-switch">
+      {{ mode === 'register' ? 'Already have an account?' : 'New to CricBazar?' }}
+      <a [routerLink]="mode === 'register' ? '/cricket/account/login' : '/cricket/account/register'" queryParamsHandling="preserve">
+        {{ mode === 'register' ? 'Sign in' : 'Create account' }}
+      </a>
+    </p>
+    @if (mode === 'register') {
+      <p class="verification-note">Email and mobile verification will be added when verification services are configured.</p>
+    }
+  </section>
+</main>
+<app-storefront-footer />

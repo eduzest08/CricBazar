@@ -30,8 +30,10 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IProductImageRepository, DapperProductImageRepository>();
         services.AddScoped<IReviewRepository, DapperReviewRepository>();
         services.AddScoped<IUserRepository, DapperUserRepository>();
+        services.AddScoped<ICustomerAccountRepository, DapperCustomerAccountRepository>();
         services.AddScoped<ICartRepository, DapperCartRepository>();
         services.AddScoped<IOrderRepository, DapperOrderRepository>();
+        services.AddScoped<ICustomerDeliveryDetailsRepository, DapperCustomerDeliveryDetailsRepository>();
         services.AddScoped<IWishlistRepository, DapperWishlistRepository>();
         services.AddScoped<ICustomBatRequestRepository, DapperCustomBatRequestRepository>();
 
@@ -66,8 +68,10 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IProductImageRepository, DapperProductImageRepository>();
         services.AddScoped<IReviewRepository, DapperReviewRepository>();
         services.AddScoped<IUserRepository, DapperUserRepository>();
+        services.AddScoped<ICustomerAccountRepository, DapperCustomerAccountRepository>();
         services.AddScoped<ICartRepository, DapperCartRepository>();
         services.AddScoped<IOrderRepository, DapperOrderRepository>();
+        services.AddScoped<ICustomerDeliveryDetailsRepository, DapperCustomerDeliveryDetailsRepository>();
         services.AddScoped<IWishlistRepository, DapperWishlistRepository>();
         services.AddScoped<ICustomBatRequestRepository, DapperCustomBatRequestRepository>();
 

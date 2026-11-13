@@ -1,0 +1,208 @@
+<app-storefront-header />
+<main class="checkout-page">
+  <h1>Checkout</h1>
+  @if (!cart.items().length) {
+    <section class="empty-cart">
+      <h2>Your cart is empty</h2>
+      <p>Add products before continuing to checkout.</p>
+      <a routerLink="/cricket">Continue shopping</a>
+    </section>
+  } @else if (sessionError && !account.sessionChecked()) {
+    <section class="checkout-card" role="alert">
+      <p>Could not check your account: {{ sessionError }}</p>
+      <button type="button" (click)="restoreSession()">Try again</button>
+    </section>
+  } @else if (!account.sessionChecked()) {
+    <p role="status">Checking your account...</p>
+  } @else if (!account.currentAccount() && !guestChosen) {
+    <section class="checkout-card checkout-choice">
+      <h2>How would you like to checkout?</h2>
+      <p>Sign in to use a saved delivery address, or continue as a guest.</p>
+      <a routerLink="/cricket/account/login" [queryParams]="{ returnTo: '/cricket/checkout' }">Sign in</a>
+      <button type="button" (click)="guestChosen = true">Continue as guest</button>
+    </section>
+  } @else if (loadingAddress) {
+    <p role="status">Loading your saved delivery address...</p>
+  } @else {
+    <form #checkoutForm="ngForm" (ngSubmit)="saveDeliveryDetails(checkoutForm)" (input)="clearConfirmation()" (change)="clearConfirmation()" novalidate>
+      <fieldset class="checkout-fieldset" [disabled]="saving || removing">
+      <div class="checkout-layout">
+        <div class="checkout-details">
+          @if (addressError) {
+            <p class="form-message error" role="alert">Your saved addresses could not be loaded: {{ addressError }}. You can enter an address below.</p>
+          }
+          @if (account.currentAccount() && savedAddresses.length) {
+            <section class="checkout-card saved-addresses" aria-labelledby="saved-addresses-heading">
+              <h2 id="saved-addresses-heading">Choose a delivery address</h2>
+              <div class="saved-address-list">
+                @for (address of savedAddresses; track address.customerDeliveryId) {
+                  <div class="saved-address-card" [class.selected]="selectedAddressId === address.customerDeliveryId">
+                  <label class="saved-address">
+                    <input type="radio" name="savedAddress" [checked]="selectedAddressId === address.customerDeliveryId"
+                      (change)="selectAddress(address)" />
+                    <span class="saved-address-content">
+                      <strong>{{ address.firstName }} {{ address.lastName }}</strong>
+                      <span>{{ address.addressLine1 }}@if (address.addressLine2) {, {{ address.addressLine2 }}}</span>
+                      <span>{{ address.city }}, {{ address.state }} {{ address.pincode }}, {{ address.deliveryCountry }}</span>
+                      <span>{{ address.receiverPhone }}</span>
+                    </span>
+                  </label>
+                  @if (pendingRemovalId === address.customerDeliveryId) {
+                    <div class="remove-address-confirm">
+                      <span>Remove this address?</span>
+                      <button type="button" class="remove-address" (click)="removeAddress(address.customerDeliveryId)">Yes, remove</button>
+                      <button type="button" (click)="pendingRemovalId = null; removeError = ''">Cancel</button>
+                    </div>
+                  } @else {
+                    <button type="button" class="remove-address" [attr.aria-label]="'Remove address: ' + address.addressLine1"
+                      (click)="pendingRemovalId = address.customerDeliveryId; removeError = ''">Remove</button>
+                  }
+                  </div>
+                }
+                <label class="saved-address" [class.selected]="selectedAddressId === null">
+                  <input type="radio" name="savedAddress" [checked]="selectedAddressId === null" (change)="addNewAddress()" />
+                  <span class="saved-address-content"><strong>Add a new address</strong><span>Enter different delivery details</span></span>
+                </label>
+              </div>
+              @if (removeError) { <p class="form-message error" role="alert">Address could not be removed: {{ removeError }}</p> }
+              <p class="address-note">Select an address to update it, or add a new one.</p>
+            </section>
+          }
+          <section class="checkout-card" aria-labelledby="customer-details-heading">
+            <h2 id="customer-details-heading">Customer Details</h2>
+            <label for="customer-country">Country</label>
+            <select id="customer-country" name="customerCountry" [(ngModel)]="delivery.customerCountry" required>
+              @for (country of countries; track country) {
+                <option [value]="country">{{ country }}</option>
+              }
+            </select>
+
+            <label for="mobile-number">Mobile Number <span>*</span></label>
+            <input id="mobile-number" name="mobileNumber" type="tel" [(ngModel)]="delivery.mobileNumber"
+              placeholder="Enter mobile number" autocomplete="tel" maxlength="15"
+              pattern="[0-9+() -]{7,15}" required />
+            @if (checkoutForm.submitted && checkoutForm.controls['mobileNumber']?.invalid) {
+              <span class="field-error">Enter a valid mobile number.</span>
+            }
+          </section>
+
+          <section class="checkout-card delivery-card" aria-labelledby="delivery-address-heading">
+            <h2 id="delivery-address-heading">Delivery Address</h2>
+            <label for="order-email">Email ID for this Order</label>
+            <p class="field-hint">Order confirmation and updates will be sent to this email ID.</p>
+            <input id="order-email" name="orderEmail" type="email" [(ngModel)]="delivery.orderEmail"
+              placeholder="Enter email ID for this order" autocomplete="email" maxlength="254" />
+            @if (checkoutForm.submitted && checkoutForm.controls['orderEmail']?.invalid) {
+              <span class="field-error">Enter a valid email address.</span>
+            }
+
+            <h3>Enter Delivery Address</h3>
+            <div class="address-fields">
+              <div class="field">
+                <label class="sr-only" for="first-name">First Name *</label>
+                <input id="first-name" name="firstName" [(ngModel)]="delivery.firstName"
+                  placeholder="First Name *" autocomplete="given-name" maxlength="100" required />
+              </div>
+              <div class="field">
+                <label class="sr-only" for="last-name">Last Name</label>
+                <input id="last-name" name="lastName" [(ngModel)]="delivery.lastName"
+                  placeholder="Last Name" autocomplete="family-name" maxlength="100" />
+              </div>
+              <div class="field">
+                <label class="sr-only" for="address-line-1">Address Line 1 *</label>
+                <input id="address-line-1" name="addressLine1" [(ngModel)]="delivery.addressLine1"
+                  placeholder="Address Line 1 *" autocomplete="address-line1" maxlength="255" required />
+              </div>
+              <div class="field">
+                <label class="sr-only" for="receiver-phone">Receiver Phone *</label>
+                <input id="receiver-phone" name="receiverPhone" type="tel" [(ngModel)]="delivery.receiverPhone"
+                  placeholder="Receiver Phone *" autocomplete="tel" maxlength="15"
+                  pattern="[0-9+() -]{7,15}" required />
+              </div>
+              <div class="field">
+                <label class="sr-only" for="address-line-2">Address Line 2</label>
+                <input id="address-line-2" name="addressLine2" [(ngModel)]="delivery.addressLine2"
+                  placeholder="Address Line 2" autocomplete="address-line2" maxlength="255" />
+              </div>
+              <div class="field">
+                <label class="sr-only" for="pincode">Pincode *</label>
+                <input id="pincode" name="pincode" [(ngModel)]="delivery.pincode" placeholder="Pincode *"
+                  autocomplete="postal-code" maxlength="10" pattern="[a-zA-Z0-9 -]{1,10}" required />
+              </div>
+              <div class="field">
+                <label class="sr-only" for="state">State *</label>
+                <input id="state" name="state" [(ngModel)]="delivery.state" placeholder="State *"
+                  autocomplete="address-level1" maxlength="100" required />
+              </div>
+              <div class="field">
+                <label class="sr-only" for="city">City *</label>
+                <input id="city" name="city" [(ngModel)]="delivery.city" placeholder="City *"
+                  autocomplete="address-level2" maxlength="100" required />
+              </div>
+              <div class="field">
+                <label class="sr-only" for="delivery-country">Delivery Country *</label>
+                <select id="delivery-country" name="deliveryCountry" [(ngModel)]="delivery.deliveryCountry" required>
+                  @for (country of countries; track country) {
+                    <option [value]="country">{{ country }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+            <p class="address-note">{{ account.currentAccount() ? 'This address will be saved to your account for future checkouts.' : 'Guest delivery details are saved for this checkout only.' }}</p>
+          </section>
+        </div>
+
+        <aside class="checkout-sidebar" aria-label="Order summary and checkout options">
+          <section class="checkout-card summary-card">
+            <h2>Order Summary</h2>
+            <div class="summary-row"><span>Subtotal</span><strong>{{ cart.subtotal() | currency:'INR':'symbol':'1.2-2' }}</strong></div>
+            <div class="summary-row"><span>Shipping</span><strong>{{ shippingFee ? (shippingFee | currency:'INR':'symbol':'1.2-2') : 'FREE' }}</strong></div>
+            <div class="summary-row grand-total"><span>Grand Total</span><strong>{{ total | currency:'INR':'symbol':'1.2-2' }}</strong></div>
+            <ul class="summary-items">
+              @for (item of cart.items(); track item.product.id) {
+                <li><span>{{ item.product.name }} × {{ item.quantity }}</span><strong>{{ item.product.salePrice * item.quantity | currency:'INR':'symbol':'1.0-2' }}</strong></li>
+              }
+            </ul>
+          </section>
+
+          <section class="checkout-card option-card">
+            <h2>Shipping Method</h2>
+            <label class="choice">
+              <input type="radio" name="shippingMethod" value="standard" [(ngModel)]="shippingMethod" />
+              <span><strong>Standard Shipping</strong><small>Delivery in 5-6 Business Days</small></span><b>FREE</b>
+            </label>
+            <label class="choice">
+              <input type="radio" name="shippingMethod" value="express" [(ngModel)]="shippingMethod" />
+              <span><strong>Express Shipping</strong><small>Delivery in 2-3 Business Days</small></span>
+              <b>{{ 840 | currency:'INR':'symbol':'1.0-0' }}</b>
+            </label>
+          </section>
+
+          <section class="checkout-card option-card payment-card">
+            <h2>Payment Method</h2>
+            <p class="payment-choice"><span aria-hidden="true">●</span><strong>Online Payment</strong></p>
+            <p class="payment-note">Payment processing is not enabled yet. This step only saves your delivery details.</p>
+          </section>
+
+          @if (validationError) {
+            <p class="form-message error" role="alert">Check the required fields and correct any invalid values.</p>
+          }
+          @if (error) { <p class="form-message error" role="alert">{{ error }}</p> }
+          @if (confirmation) {
+            <p class="form-message success" role="status">{{ confirmation }}</p>
+            <a class="payment-link" [routerLink]="['/cricket/payment']"
+              [queryParams]="{ deliveryId: savedDeliveryId, shipping: shippingMethod }">
+              Review payment options
+            </a>
+          }
+          <button class="submit-button" type="submit" [disabled]="saving">
+            {{ saving ? 'Saving details...' : 'Save Delivery Details' }}
+          </button>
+          <p class="secure-note"><span aria-hidden="true">🔒</span> Your details are sent securely</p>
+        </aside>
+      </div>
+      </fieldset>
+    </form>
+  }
+</main>
+<app-storefront-footer />

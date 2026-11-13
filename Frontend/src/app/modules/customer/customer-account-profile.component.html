@@ -1,0 +1,28 @@
+<app-storefront-header />
+<main class="profile-page">
+  <section class="profile-card">
+    @if (loading) {
+      <p role="status">Loading your account...</p>
+    } @else if (error && !api.currentAccount()) {
+      <h1>Sign in required</h1>
+      <p class="profile-error" role="alert">{{ error }}</p>
+      <a class="profile-link" routerLink="/cricket/account/login">Sign in to your account</a>
+    } @else if (api.currentAccount(); as account) {
+      <span class="profile-avatar" aria-hidden="true">
+        {{ (account.firstName || account.mobileNumber).slice(0, 1).toUpperCase() }}
+      </span>
+      <p class="eyebrow">YOUR CRICBAZAR ACCOUNT</p>
+      <h1>Hello{{ account.firstName ? ', ' + account.firstName : '' }}</h1>
+      <div class="profile-details">
+        <div><span>Country</span><strong>{{ account.country }}</strong></div>
+        <div><span>Mobile</span><strong>{{ account.mobileNumber }}</strong></div>
+        <div><span>Email</span><strong>{{ account.email || 'Not added' }}</strong></div>
+      </div>
+      @if (error) { <p class="profile-error" role="alert">{{ error }}</p> }
+      <button type="button" class="signout-button" [disabled]="signingOut" (click)="signOut()">
+        {{ signingOut ? 'Signing out...' : 'Sign out' }}
+      </button>
+    }
+  </section>
+</main>
+<app-storefront-footer />

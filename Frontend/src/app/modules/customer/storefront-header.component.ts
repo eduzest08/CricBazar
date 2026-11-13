@@ -5,6 +5,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { Category } from '../../core/models/catalog.models';
 import { CatalogApiService } from '../../core/services/catalog-api.service';
+import { CustomerAccountApiService } from '../../core/services/customer-account-api.service';
 import { StorefrontCartService } from '../../core/services/storefront-cart.service';
 import { getApiErrorMessage } from '../../core/utils/api-error';
 
@@ -22,7 +23,12 @@ interface CategoryMenuGroup {
 export class StorefrontHeaderComponent implements OnInit, OnDestroy {
   private readonly api = inject(CatalogApiService);
   readonly cart = inject(StorefrontCartService);
+  readonly account = inject(CustomerAccountApiService);
   private categorySubscription?: Subscription;
+  private accountSubscription?: Subscription;
+  accountError = '';
+  sessionError = '';
+  signingOut = false;
   @ViewChild('cricketMenu', { read: ElementRef }) private cricketMenuElement?: ElementRef<HTMLElement>;
 
   @Input() searchValue = '';
@@ -37,10 +43,29 @@ export class StorefrontHeaderComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadCategories();
+    this.restoreAccount();
   }
 
   ngOnDestroy(): void {
     this.categorySubscription?.unsubscribe();
+    this.accountSubscription?.unsubscribe();
+  }
+
+  restoreAccount(): void {
+    this.sessionError = '';
+    this.accountSubscription = this.account.restoreSession().subscribe({
+      error: (error: unknown) => { this.sessionError = getApiErrorMessage(error); },
+    });
+  }
+
+  signOut(): void {
+    if (this.signingOut) return;
+    this.signingOut = true;
+    this.accountError = '';
+    this.accountSubscription = this.account.logout().subscribe({
+      next: () => { this.signingOut = false; },
+      error: (error: unknown) => { this.signingOut = false; this.accountError = getApiErrorMessage(error); },
+    });
   }
 
   toggleCategoryMenu(): void {

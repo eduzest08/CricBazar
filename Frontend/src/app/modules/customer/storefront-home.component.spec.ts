@@ -121,16 +121,17 @@ describe('customer home', () => {
     expect((harness.routeNativeElement as HTMLElement).querySelector('h1')?.textContent).toContain('Product 1');
   });
 
-  it('searches from the shared header and marks upcoming actions unavailable', async () => {
+  it('searches from the shared header and exposes account navigation', async () => {
     const harness = await RouterTestingHarness.create('/');
     harness.detectChanges();
     const element = harness.routeNativeElement as HTMLElement;
     const actions = element.querySelectorAll<HTMLButtonElement>('.header-actions button');
-    expect(actions).toHaveLength(3);
+    expect(actions).toHaveLength(2);
     expect(actions[0].disabled && actions[0].textContent?.includes('Coming soon')).toBe(true);
-    expect(actions[1].disabled && actions[1].textContent?.includes('Coming soon')).toBe(true);
-    expect(actions[2].disabled).toBe(false);
-    expect(actions[2].textContent).toContain('Your Cart (0)');
+    expect(actions[1].disabled).toBe(false);
+    expect(actions[1].textContent).toContain('Your Cart (0)');
+    expect(element.querySelector<HTMLAnchorElement>('.account-toggle')?.getAttribute('href'))
+      .toBe('/cricket/account/login');
     const input = element.querySelector<HTMLInputElement>('#catalog-search')!;
     input.value = 'SKU-1';
     input.dispatchEvent(new Event('input'));

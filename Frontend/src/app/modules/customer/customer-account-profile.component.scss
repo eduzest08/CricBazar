@@ -1,0 +1,16 @@
+:host { display: block; min-height: 100vh; color: #1d2b40; background: #f5f7fb; }
+.profile-page { display: grid; place-items: start center; min-height: 520px; padding: 42px 16px; }
+.profile-card { width: min(100%, 520px); padding: 28px; border: 1px solid #e6eaf1; border-radius: 12px; background: white; box-shadow: 0 10px 35px rgb(27 49 83 / 8%); }
+.profile-card h1 { margin: 0 0 20px; font-size: 23px; }
+.profile-avatar { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 12px; border-radius: 50%; background: #eaf1ff; color: #2867c7; font-size: 20px; font-weight: 800; }
+.eyebrow { margin: 0 0 6px; color: #2867c7; font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+.profile-details { display: grid; gap: 0; margin-bottom: 18px; border: 1px solid #e6eaf1; border-radius: 7px; }
+.profile-details div { display: flex; justify-content: space-between; gap: 12px; padding: 12px; border-bottom: 1px solid #edf0f4; font-size: 12px; }
+.profile-details div:last-child { border-bottom: 0; }
+.profile-details span { color: #748093; }
+.profile-details strong { overflow-wrap: anywhere; text-align: right; }
+.signout-button { min-height: 40px; padding: 0 18px; border: 1px solid #d34b42; border-radius: 5px; background: white; color: #b3332c; font-weight: 700; cursor: pointer; }
+.signout-button:disabled { opacity: .6; cursor: wait; }
+.profile-error { padding: 10px; border-radius: 5px; background: #fff0ef; color: #a52b23; font-size: 12px; }
+.profile-link { color: #2867c7; font-size: 12px; font-weight: 700; }
+@media (max-width: 520px) { .profile-card { padding: 22px 18px; } }

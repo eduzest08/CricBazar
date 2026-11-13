@@ -1,0 +1,39 @@
+@baseUrl = http://localhost:5080/api/v1/customer-accounts
+
+### Request the anti-forgery token and cookie before account state changes.
+GET {{baseUrl}}/antiforgery
+
+###
+@csrfToken = {{response.body.$.requestToken}}
+
+### Register a customer. The API returns an HttpOnly session cookie.
+POST {{baseUrl}}/register
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "country": "India",
+  "mobileNumber": "9876543210",
+  "email": "customer@example.com",
+  "firstName": "Cricket",
+  "lastName": "Fan",
+  "password": "SecurePassword123"
+}
+
+### Sign in using the registered email or mobile number.
+POST {{baseUrl}}/login
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "identifier": "customer@example.com",
+  "country": "India",
+  "password": "SecurePassword123"
+}
+
+### Read the current registered account (send the session cookie from login/register).
+GET {{baseUrl}}/me
+
+### Sign out (send the session cookie from login/register).
+POST {{baseUrl}}/logout
+X-CSRF-TOKEN: {{csrfToken}}

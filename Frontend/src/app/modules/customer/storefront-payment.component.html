@@ -1,0 +1,147 @@
+<app-storefront-header />
+<main class="payment-page">
+  <div class="payment-container">
+    <header class="payment-brand">
+      <a routerLink="/" aria-label="CricBazar home">Cric<span>Bazar</span></a>
+      <span class="secure-label"><span aria-hidden="true">⌑</span> Payment options</span>
+    </header>
+
+    <div class="payment-status" role="status">
+      <span class="status-dot" aria-hidden="true"></span>
+      Payment provider setup is pending. No charge will be made on this page.
+    </div>
+
+    @if (cart.items().length) {
+      <div class="payment-content">
+        <section class="billing-section" aria-labelledby="billing-title">
+          <div class="section-heading">
+            <div>
+              <span class="step-label">STEP 2 OF 2</span>
+              <h1 id="billing-title">Review &amp; payment</h1>
+              <p>Check your delivery details and choose a payment method.</p>
+            </div>
+            <a class="edit-link" routerLink="/cricket/checkout">Edit delivery details</a>
+          </div>
+
+          <section class="billing-card" aria-labelledby="delivery-title">
+            <div class="card-heading">
+              <h2 id="delivery-title">Delivery information</h2>
+              @if (deliveryReference) {
+                <span class="reference">Ref #{{ deliveryReference }}</span>
+              }
+            </div>
+            @if (savedDelivery(); as saved) {
+              <p class="delivery-name">{{ saved.details.firstName }} {{ saved.details.lastName }}</p>
+              <p class="delivery-address">
+                {{ saved.details.addressLine1 }}@if (saved.details.addressLine2) {, {{ saved.details.addressLine2 }}}<br />
+                {{ saved.details.city }}, {{ saved.details.state }} {{ saved.details.pincode }}<br />
+                {{ saved.details.deliveryCountry }}
+              </p>
+              <p class="delivery-contact">
+                {{ saved.details.receiverPhone }}
+                @if (saved.details.orderEmail) { <span> · {{ saved.details.orderEmail }}</span> }
+              </p>
+            } @else {
+              <p>Delivery details are not available in this browser session. Return to checkout to review them.</p>
+            }
+            <a routerLink="/cricket/checkout">Review or update address <span aria-hidden="true">→</span></a>
+          </section>
+
+          <section class="method-section" aria-labelledby="payment-title">
+            <h2 id="payment-title">Payment Information</h2>
+            <div class="method-layout">
+              <div class="method-tabs" role="group" aria-label="Choose a payment method">
+                @for (method of methods; track method.id) {
+                  <button type="button" class="method-tab" [class.selected]="selectedMethod === method.id"
+                    [attr.aria-pressed]="selectedMethod === method.id" (click)="selectMethod(method.id)">
+                    <span class="method-icon" aria-hidden="true">{{ method.icon }}</span>
+                    {{ method.label }}
+                  </button>
+                }
+              </div>
+
+              <section class="method-panel" aria-live="polite">
+                <div class="accepted-heading">
+                  <span class="accepted-label">Available payment options</span>
+                  @if (selectedMethod === 'credit-card' || selectedMethod === 'debit-card') {
+                    <div class="network-badges" aria-label="Card networks planned">
+                      <span>VISA</span><span>Mastercard</span><span>RuPay</span>
+                    </div>
+                  }
+                </div>
+
+                @switch (selectedMethod) {
+                  @case ('credit-card') {
+                    <h3>Credit Card</h3>
+                    <p>Pay with a supported credit card through our payment partner.</p>
+                  }
+                  @case ('debit-card') {
+                    <h3>Debit Card</h3>
+                    <p>Pay with a supported debit card through our payment partner.</p>
+                  }
+                  @case ('net-banking') {
+                    <h3>Net Banking</h3>
+                    <p>Select your bank securely after a payment provider is connected.</p>
+                  }
+                  @case ('wallet') {
+                    <h3>Wallet</h3>
+                    <p>Supported digital wallets will be available here after setup.</p>
+                  }
+                  @case ('upi') {
+                    <h3>UPI</h3>
+                    <p>UPI apps and collect requests will be available when payments are enabled.</p>
+                  }
+                }
+
+                <p class="provider-notice"><span aria-hidden="true">i</span> Payment gateway integration is not configured. Do not enter payment details on this page.</p>
+                <p class="privacy-note">Your payment information should only be entered on the secure payment provider page.</p>
+                @if (paymentNotice) {
+                  <p class="payment-error" role="alert">{{ paymentNotice }}</p>
+                }
+                <div class="pay-total">
+                  <strong>{{ total | currency:'INR':'symbol':'1.2-2' }}</strong>
+                  <span>Total amount payable</span>
+                </div>
+                <button class="pay-button" type="button" (click)="makePayment()">Continue to Payment</button>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <aside class="order-card" aria-label="Order details">
+          <h2>Order Details</h2>
+          <div class="order-number">
+            <span>Order reference</span>
+            <strong>Not created yet</strong>
+          </div>
+          <ul class="order-items">
+            @for (item of cart.items(); track item.product.id) {
+              <li>
+                <span>{{ item.product.name }} <small>× {{ item.quantity }}</small></span>
+                <strong>{{ item.product.salePrice * item.quantity | currency:'INR':'symbol':'1.2-2' }}</strong>
+              </li>
+            }
+          </ul>
+          <div class="order-total-row"><span>Order amount</span><span>{{ cart.subtotal() | currency:'INR':'symbol':'1.2-2' }}</span></div>
+          <div class="order-total-row"><span>{{ shippingMethod === 'express' ? 'Express shipping' : 'Standard shipping' }}</span>
+            <span>{{ shippingFee ? (shippingFee | currency:'INR':'symbol':'1.2-2') : 'FREE' }}</span></div>
+          <div class="order-grand-total"><strong>Total Amount</strong><strong>{{ total | currency:'INR':'symbol':'1.2-2' }}</strong></div>
+          <p class="order-note">An order will only be created after order processing and payment are implemented.</p>
+          <a class="back-link" routerLink="/cricket/checkout">← Back to checkout</a>
+        </aside>
+      </div>
+    } @else {
+      <section class="empty-cart">
+        <h1>Your cart is empty</h1>
+        <p>Add items to your cart before viewing payment options.</p>
+        <a routerLink="/cricket">Continue shopping</a>
+      </section>
+    }
+
+    <footer class="payment-footer">
+      <span>Need help? Contact customer support.</span>
+      <span>Payments are not processed on this preview page.</span>
+    </footer>
+  </div>
+</main>
+<app-storefront-footer />

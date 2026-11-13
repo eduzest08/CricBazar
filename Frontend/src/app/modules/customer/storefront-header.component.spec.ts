@@ -1,16 +1,33 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { CatalogApiService } from '../../core/services/catalog-api.service';
+import { CustomerAccount, CustomerAccountApiService } from '../../core/services/customer-account-api.service';
 import { StorefrontHeaderComponent } from './storefront-header.component';
 
 describe('storefront header', () => {
   const api = {
     getCategories: vi.fn(),
   };
+  const account = {
+    currentAccount: signal<CustomerAccount | null>(null),
+    sessionChecked: signal(true),
+    restoreSession: vi.fn(() => of(null)),
+    logout: vi.fn(() => {
+      account.currentAccount.set(null);
+      return of(void 0);
+    }),
+  };
 
   beforeEach(() => {
     vi.resetAllMocks();
+    account.currentAccount.set(null);
+    account.restoreSession.mockReturnValue(of(null));
+    account.logout.mockImplementation(() => {
+      account.currentAccount.set(null);
+      return of(void 0);
+    });
     api.getCategories.mockReturnValue(of([
       {
         id: 1, parentId: null, name: 'Bats', slug: 'bats', sortOrder: 1, isActive: true,
@@ -25,8 +42,27 @@ describe('storefront header', () => {
       providers: [
         provideRouter([]),
         { provide: CatalogApiService, useValue: api },
+        { provide: CustomerAccountApiService, useValue: account },
       ],
     });
+
+  });
+
+  it('shows the signed-in customer and signs out', () => {
+    account.currentAccount.set({
+      customerAccountId: 1, accountGuid: 'id', country: 'India', mobileNumber: '1234567890',
+      email: null, firstName: 'Cricket Fan', lastName: null, createdAt: '2026-01-01',
+    });
+    const fixture = TestBed.createComponent(StorefrontHeaderComponent);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('.account-toggle')?.textContent).toContain('Cricket Fan');
+    expect(element.querySelector('.account-toggle')?.getAttribute('href')).toBe('/cricket/account/profile');
+    element.querySelector<HTMLButtonElement>('.sign-out')!.click();
+    fixture.detectChanges();
+    expect(account.logout).toHaveBeenCalled();
+    expect(element.querySelector('.sign-out')).toBeNull();
+    expect(element.querySelector('.account-toggle')?.textContent).toContain('Sign in / Register');
   });
 
   it('opens the Cricket menu with category and subcategory links', async () => {

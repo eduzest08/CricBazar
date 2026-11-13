@@ -1,0 +1,51 @@
+@baseUrl = http://localhost:5080
+
+### Obtain an antiforgery token. Retain the response cookie and use the token below.
+GET {{baseUrl}}/api/v1/customer-accounts/antiforgery
+
+### Save delivery details as a guest or with a signed-in session.
+### Replace the token and include the antiforgery cookie from the request above.
+POST {{baseUrl}}/api/v1/customer-delivery-details
+Content-Type: application/json
+X-CSRF-TOKEN: replace-with-request-token
+
+{
+  "customerCountry": "India",
+  "saveToAccount": false,
+  "mobileNumber": "1234567890",
+  "firstName": "Cricket Fan",
+  "addressLine1": "Example Street",
+  "receiverPhone": "1234567890",
+  "pincode": "560001",
+  "state": "Karnataka",
+  "city": "Bengaluru",
+  "deliveryCountry": "India"
+}
+
+### Latest address: requires a signed-in customer session; returns 204 when none exists.
+### Set saveToAccount to true when saving an address for a signed-in customer.
+GET {{baseUrl}}/api/v1/customer-delivery-details/latest
+
+### All saved addresses, newest first: requires a signed-in customer session.
+GET {{baseUrl}}/api/v1/customer-delivery-details
+
+### Update an owned saved address. Include the session, antiforgery cookie and request token.
+PUT {{baseUrl}}/api/v1/customer-delivery-details/1
+Content-Type: application/json
+X-CSRF-TOKEN: replace-with-request-token
+
+{
+  "customerCountry": "India",
+  "mobileNumber": "1234567890",
+  "firstName": "Cricket Fan",
+  "addressLine1": "Updated Example Street",
+  "receiverPhone": "1234567890",
+  "pincode": "560001",
+  "state": "Karnataka",
+  "city": "Bengaluru",
+  "deliveryCountry": "India"
+}
+
+### Remove an owned saved address. Include the session, antiforgery cookie and request token.
+DELETE {{baseUrl}}/api/v1/customer-delivery-details/1
+X-CSRF-TOKEN: replace-with-request-token
